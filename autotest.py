@@ -142,6 +142,201 @@ class Server(object):
         else:
             return self.__exec_ssh(command)
 
+    def tmux_new(self, session_name, command):
+        """
+        Start a tmux session on the server.
+
+        Parameters
+        ----------
+        session_name : str
+            The name of the session.
+        command : str
+            The command to execute.
+
+        Returns
+        -------
+
+        See Also
+        --------
+        exec : Execute command on the server.
+        tmux_kill : Stop a tmux session on the server.
+        tmux_send_keys : Send keys to a tmux session on the server.
+        """
+        self.exec(f'tmux new -s {session_name} -d {command}')
+
+    def tmux_kill(self, session_name):
+        """
+        Stop a tmux session on the server.
+
+        Parameters
+        ----------
+        session_name : str
+            The name of the session.
+
+        Returns
+        -------
+
+        See Also
+        --------
+        exec : Execute command on the server.
+        tmux_new : Start a tmux session on the server.
+        tmux_send_keys : Send keys to a tmux session on the server.
+        """
+        self.exec(f'tmux kill-session -t {session_name}')
+
+    def tmux_send_keys(self, session_name, keys):
+        """
+        Send keys to a tmux session on the server.
+
+        Parameters
+        ----------
+        session_name : str
+            The name of the session.
+        keys : str
+            The keys to execute.
+
+        Returns
+        -------
+
+        See Also
+        --------
+        exec : Execute keys on the server.
+        tmux_new : Start a tmux session on the server.
+        tmux_kill : Stop a tmux session on the server.
+        """
+        self.exec(f'tmux send-keys -t {session_name} {keys}')
+
+    def __copy_local(self, source, destination):
+        """
+        Copy a file from the localhost to the server.
+
+        This method is called by the copy method if the server is localhost.
+
+        Parameters
+        ----------
+        source : str
+            The source file.
+        destination : str
+            The destination file.
+
+        Returns
+        -------
+
+        See Also
+        --------
+        copy : Copy a file from the server to the localhost.
+        __copy_ssh : Copy a file from the server to the server over SSH.
+        """
+        self.exec(f'cp {source} {destination}')
+
+    def __scp_to(self, source, destination):
+        """
+        Copy a file from the localhost to the server.
+
+        This method is called by the copy method if the server is not
+        localhost.
+
+        Parameters
+        ----------
+        source : str
+            The source file.
+        destination : str
+            The destination file.
+
+        Returns
+        -------
+
+        See Also
+        --------
+        copy : Copy a file from the server to the localhost.
+        __copy_local : Copy a file from the server to the server over SSH.
+        __scp_from : Copy a file from the server to the server over SSH.
+        """
+        self.exec(f'scp {source} {self.fqdn}:{destination}')
+
+    def __scp_from(self, source, destination):
+        """
+        Copy a file from the server to the localhost.
+
+        This method is called by the copy method if the server is not
+        localhost.
+
+        Parameters
+        ----------
+        source : str
+            The source file.
+        destination : str
+            The destination file.
+
+        Returns
+        -------
+
+        See Also
+        --------
+        copy : Copy a file from the server to the localhost.
+        __copy_local : Copy a file from the server to the server over SSH.
+        __scp_to : Copy a file from the server to the server over SSH.
+        """
+        self.exec(f'scp {self.fqdn}:{source} {destination}')
+
+    def copy_to(self, source, destination):
+        """
+        Copy a file from the localhost to the server.
+
+        Parameters
+        ----------
+        source : str
+            The source file.
+        destination : str
+            The destination file.
+
+        Returns
+        -------
+
+        See Also
+        --------
+        __copy_local : Copy a file from the server to the server over SSH.
+        __scp_to : Copy a file from the server to the server over SSH.
+        copy_from : Copy a file from the server to the localhost.
+
+        Example
+        -------
+        >>> server.copy_to('/home/user/file.txt', '/home/user/file.txt')
+        """
+        if self.localhost:
+            self.__copy_local(source, destination)
+        else:
+            self.__scp_to(source, destination)
+
+    def copy_from(self, source, destination):
+        """
+        Copy a file from the server to the localhost.
+
+        Parameters
+        ----------
+        source : str
+            The source file.
+        destination : str
+            The destination file.
+
+        Returns
+        -------
+
+        See Also
+        --------
+        __copy_local : Copy a file from the server to the server over SSH.
+        __scp_from : Copy a file from the server to the server over SSH.
+        copy_to : Copy a file from the localhost to the server.
+
+        Example
+        -------
+        >>> server.copy_from('/home/user/file.txt', '/home/user/file.txt')
+        """
+        if self.localhost:
+            self.__copy_local(source, destination)
+        else:
+            self.__scp_from(source, destination)
+
 
 # functions
 def setup_parser() -> ArgumentParser:
