@@ -63,6 +63,24 @@ class Server(object):
         """
         self.localhost = self.fqdn == 'localhost' or self.fqdn == getfqdn()
 
+    def ping(self):
+        """
+        Ping the server.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        bool
+            True if the server is reachable.
+
+        See Also
+        --------
+        exec : Execute command on the server.
+        """
+        return self.exec('ping -c 1 -W 1') == ''
+
     def __exec_local(self, command):
         """
         Execute a command on the localhost.
