@@ -10,7 +10,7 @@ from logging import (error, info, warn, debug, basicConfig,
                      DEBUG, INFO, WARN, ERROR)
 from dataclasses import dataclass
 from socket import getfqdn
-from subprocess import check_output
+from subprocess import check_output, CalledProcessError
 
 
 # constants
@@ -63,9 +63,9 @@ class Server(object):
         """
         self.localhost = self.fqdn == 'localhost' or self.fqdn == getfqdn()
 
-    def ping(self):
+    def is_reachable(self):
         """
-        Ping the server.
+        Check if the server is reachable.
 
         Parameters
         ----------
@@ -79,7 +79,15 @@ class Server(object):
         --------
         exec : Execute command on the server.
         """
-        return self.exec('ping -c 1 -W 1') == ''
+        if self.localhost:
+            return True
+        else:
+            try:
+                check_output(f'ping -c 1 -W 1 {self.fqdn}', shell=True)
+            except CalledProcessError:
+                return False
+            else:
+                return True
 
     def __exec_local(self, command):
         """
@@ -516,8 +524,9 @@ def main():
     debug(f'loadgen: {loadgen}')
 
     # test we can execute commands
-    print(host.exec('hostname -f'))
-    print(loadgen.exec('hostname -f'))
+    print(host.is_reachable())
+    print(loadgen.is_reachable())
+    print(guest.is_reachable())
 
 
 if __name__ == '__main__':
