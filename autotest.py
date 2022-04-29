@@ -510,17 +510,17 @@ def main():
     >>> main()
     """
     # parse arguments, config file and setup logging
-    parser = setup_parser()
-    args = parse_args(parser)
+    parser: ArgumentParser = setup_parser()
+    args: Namespace = parse_args(parser)
     setup_logging(args)
-    conf = setup_and_parse_config(args)
+    conf: ConfigParser = setup_and_parse_config(args)
 
     # create server objects
-    host = Server(conf['host']['fqdn'])
+    host: Server = Server(conf['host']['fqdn'])
     debug(f'host: {host}')
-    guest = Server(conf['guest']['fqdn'])
+    guest: Server = Server(conf['guest']['fqdn'])
     debug(f'guest: {guest}')
-    loadgen = Server(conf['loadgen']['fqdn'])
+    loadgen: Server = Server(conf['loadgen']['fqdn'])
     debug(f'loadgen: {loadgen}')
 
     # test we can execute commands
