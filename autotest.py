@@ -8,7 +8,7 @@ from argcomplete import autocomplete
 from configparser import ConfigParser
 from logging import (error, info, warn, debug, basicConfig,
                      DEBUG, INFO, WARN, ERROR)
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from socket import getfqdn
 from subprocess import check_output, CalledProcessError
 from sys import argv, stdin, stdout, stderr, modules
@@ -74,6 +74,7 @@ class Server(object):
     fqdn: str
     test_iface: str
     test_iface_addr: str
+    __test_iface_id: int = field(default=None, init=False)
     moongen_dir: str
     localhost: bool = False
 
