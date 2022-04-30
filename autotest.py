@@ -11,9 +11,12 @@ from logging import (error, info, warn, debug, basicConfig,
 from dataclasses import dataclass
 from socket import getfqdn
 from subprocess import check_output, CalledProcessError
+from sys import argv, stdin, stdout, stderr, modules
 
 
 # constants
+THISMODULE = modules[__name__]
+
 LOG_LEVELS = {
     0: ERROR,
     1: WARN,
@@ -431,6 +434,8 @@ def setup_parser() -> ArgumentParser:
                              debug)''',
                         )
 
+    subparsers = parser.add_subparsers(help='commands', dest='command')
+
     # return the parser
     return parser
 
@@ -465,6 +470,11 @@ def parse_args(parser: ArgumentParser) -> Namespace:
     args = parser.parse_args()
 
     args.verbosity = min(args.verbosity, len(LOG_LEVELS)-1)
+
+    if not args.command:
+        parser.print_usage(stderr)
+        print(f'{argv[0]}: error: argument missing.', file=stderr)
+        exit(1)
 
     return args
 
@@ -559,6 +569,36 @@ def create_servers(conf: ConfigParser,
     return servers
 
 
+def execute_command(args: Namespace, conf: ConfigParser):
+    """
+    Execute the function for the given command.
+
+    Parameters
+    ----------
+    args : Namespace
+        The argparse namespace containing the parsed arguments.
+    conf : ConfigParser
+        The config parser.
+
+    Returns
+    -------
+
+    See Also
+    --------
+
+    Example
+    -------
+    >>> execute_command(args)
+    """
+    function_name = args.command
+    if hasattr(args, 'sub_command') and args.sub_command:
+        function_name += f'_{args.sub_command}'
+    function_name = function_name.replace('-', '_')
+    function = getattr(THISMODULE, function_name)
+    debug(f'running command function {function_name}()')
+    function(args, conf)
+
+
 # main function
 def main():
     """
@@ -589,18 +629,8 @@ def main():
     setup_logging(args)
     conf: ConfigParser = setup_and_parse_config(args)
 
-    # create server objects
-    host: Server = Server(conf['host']['fqdn'])
-    debug(f'host: {host}')
-    guest: Server = Server(conf['guest']['fqdn'])
-    debug(f'guest: {guest}')
-    loadgen: Server = Server(conf['loadgen']['fqdn'])
-    debug(f'loadgen: {loadgen}')
-
-    # test we can execute commands
-    print(host.is_reachable())
-    print(loadgen.is_reachable())
-    print(guest.is_reachable())
+    # execute the requested command
+    execute_command(args, conf)
 
 
 if __name__ == '__main__':
