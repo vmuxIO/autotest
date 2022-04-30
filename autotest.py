@@ -578,6 +578,8 @@ def ping(args: Namespace, conf: ConfigParser) -> None:
     """
     Ping all servers.
 
+    This a command function and is therefore called by execute_command().
+
     Parameters
     ----------
     args : Namespace
@@ -590,6 +592,7 @@ def ping(args: Namespace, conf: ConfigParser) -> None:
 
     See Also
     --------
+    execute_command : Execute the command.
 
     Example
     -------
