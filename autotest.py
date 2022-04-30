@@ -196,6 +196,7 @@ class Server(object):
         >>> print(server.exec('ls -l'))
         .bashrc
         """
+        debug(f'Executing command on {self.fqdn}: {command}')
         if self.localhost:
             return self.__exec_local(command)
         else:
