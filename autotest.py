@@ -436,6 +436,11 @@ def setup_parser() -> ArgumentParser:
 
     subparsers = parser.add_subparsers(help='commands', dest='command')
 
+    ping_parser = subparsers.add_parser('ping',
+                                        help='''Ping all servers.''')
+
+    __do_nothing(ping_parser)
+
     # return the parser
     return parser
 
@@ -567,6 +572,32 @@ def create_servers(conf: ConfigParser,
     if loadgen:
         servers['loadgen'] = Server(conf['loadgen']['fqdn'])
     return servers
+
+
+def ping(args: Namespace, conf: ConfigParser) -> None:
+    """
+    Ping all servers.
+
+    Parameters
+    ----------
+    args : Namespace
+        The argparse namespace containing the parsed arguments.
+    conf : ConfigParser
+        The config parser.
+
+    Returns
+    -------
+
+    See Also
+    --------
+
+    Example
+    -------
+    >>> ping(args, conf)
+    """
+    for name, server in create_servers(conf).items():
+        print(f'{name}: ' +
+              f"{'reachable' if server.is_reachable() else 'unreachable'}")
 
 
 def execute_command(args: Namespace, conf: ConfigParser):
