@@ -15,9 +15,9 @@ from sys import argv, stdin, stdout, stderr, modules
 
 
 # constants
-THISMODULE = modules[__name__]
+THISMODULE: str = modules[__name__]
 
-LOG_LEVELS = {
+LOG_LEVELS: dict[int, int] = {
     0: ERROR,
     1: WARN,
     2: INFO,
@@ -48,7 +48,7 @@ class Server(object):
     localhost: bool = False
     ssh_port: int = 22
 
-    def __post_init__(self):
+    def __post_init__(self: 'Server') -> None:
         """
         Post initialization.
 
@@ -66,7 +66,7 @@ class Server(object):
         """
         self.localhost = self.fqdn == 'localhost' or self.fqdn == getfqdn()
 
-    def is_reachable(self):
+    def is_reachable(self: 'Server') -> bool:
         """
         Check if the server is reachable.
 
@@ -92,7 +92,7 @@ class Server(object):
             else:
                 return True
 
-    def __exec_local(self, command):
+    def __exec_local(self: 'Server', command: str) -> str:
         """
         Execute a command on the localhost.
 
@@ -115,7 +115,7 @@ class Server(object):
         """
         return check_output(command, shell=True).decode('utf-8')
 
-    def __exec_ssh(self, command):
+    def __exec_ssh(self: 'Server', command: str) -> str:
         """
         Execute a command on the server over SSH.
 
@@ -140,7 +140,7 @@ class Server(object):
         return check_output(f'ssh -p {self.ssh_port} {self.fqdn} {command}',
                             shell=True).decode('utf-8')
 
-    def exec(self, command):
+    def exec(self: 'Server', command: str) -> str:
         """
         Execute command on the server.
 
@@ -171,7 +171,7 @@ class Server(object):
         else:
             return self.__exec_ssh(command)
 
-    def tmux_new(self, session_name, command):
+    def tmux_new(self: 'Server', session_name: str, command: str) -> None:
         """
         Start a tmux session on the server.
 
@@ -193,7 +193,7 @@ class Server(object):
         """
         self.exec(f'tmux new -s {session_name} -d {command}')
 
-    def tmux_kill(self, session_name):
+    def tmux_kill(self: 'Server', session_name: str) -> None:
         """
         Stop a tmux session on the server.
 
@@ -213,7 +213,7 @@ class Server(object):
         """
         self.exec(f'tmux kill-session -t {session_name}')
 
-    def tmux_send_keys(self, session_name, keys):
+    def tmux_send_keys(self: 'Server', session_name: str, keys: str) -> None:
         """
         Send keys to a tmux session on the server.
 
@@ -235,7 +235,7 @@ class Server(object):
         """
         self.exec(f'tmux send-keys -t {session_name} {keys}')
 
-    def __copy_local(self, source, destination):
+    def __copy_local(self: 'Server', source: str, destination: str) -> None:
         """
         Copy a file from the localhost to the server.
 
@@ -258,7 +258,7 @@ class Server(object):
         """
         self.exec(f'cp {source} {destination}')
 
-    def __scp_to(self, source, destination):
+    def __scp_to(self: 'Server', source: str, destination: str) -> None:
         """
         Copy a file from the localhost to the server.
 
@@ -283,7 +283,7 @@ class Server(object):
         """
         self.exec(f'scp {source} {self.fqdn}:{destination}')
 
-    def __scp_from(self, source, destination):
+    def __scp_from(self: 'Server', source: str, destination: str) -> None:
         """
         Copy a file from the server to the localhost.
 
@@ -308,7 +308,7 @@ class Server(object):
         """
         self.exec(f'scp {self.fqdn}:{source} {destination}')
 
-    def copy_to(self, source, destination):
+    def copy_to(self: 'Server', source: str, destination: str) -> None:
         """
         Copy a file from the localhost to the server.
 
@@ -337,7 +337,7 @@ class Server(object):
         else:
             self.__scp_to(source, destination)
 
-    def copy_from(self, source, destination):
+    def copy_from(self: 'Server', source: str, destination: str) -> None:
         """
         Copy a file from the server to the localhost.
 
@@ -368,7 +368,7 @@ class Server(object):
 
 
 # functions
-def __do_nothing(variable):
+def __do_nothing(variable: any) -> None:
     """
     Do nothing with the given variable.
 
@@ -512,7 +512,7 @@ def setup_and_parse_config(args: Namespace) -> ConfigParser:
     return conf
 
 
-def setup_logging(args):
+def setup_logging(args: Namespace) -> None:
     """
     Setup the logging.
 
@@ -536,7 +536,9 @@ def setup_logging(args):
 
 
 def create_servers(conf: ConfigParser,
-                   host=True, guest=True, loadgen=True) -> dict[Server]:
+                   host: bool = True,
+                   guest: bool = True,
+                   loadgen: bool = True) -> dict[str, Server]:
     """
     Create the servers.
 
@@ -603,7 +605,7 @@ def ping(args: Namespace, conf: ConfigParser) -> None:
               f"{'reachable' if server.is_reachable() else 'unreachable'}")
 
 
-def execute_command(args: Namespace, conf: ConfigParser):
+def execute_command(args: Namespace, conf: ConfigParser) -> None:
     """
     Execute the function for the given command.
 
@@ -634,7 +636,7 @@ def execute_command(args: Namespace, conf: ConfigParser):
 
 
 # main function
-def main():
+def main() -> None:
     """
     autotest's main function.
 
