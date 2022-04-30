@@ -469,8 +469,8 @@ def setup_and_parse_config(args: Namespace) -> ConfigParser:
     See Also
     --------
 
-    Examples
-    --------
+    Example
+    -------
     >>> setup_and_parse_config(args)
     ConfigParser(...)
     """
