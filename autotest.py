@@ -431,6 +431,57 @@ class Server(object):
         """
         return self.get_driver_for_device(self.test_iface_addr) == 'igb_uio'
 
+    def bind_test_iface(self: 'Server') -> None:
+        """
+        Bind test interface to DPDK.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        """
+        # check if test interface is already bound
+        if self.is_test_iface_bound():
+            debug(f"{self.fqdn}'s test interface already bound to DPDK.")
+            if not self.__test_iface_id:
+                self.detect_test_iface_id()
+            return
+
+        # bind available interfaces to DPDK
+        self.exec(f"cd {self.moongen_dir}; sudo ./bind_interfaces.sh")
+
+        # get the test interface id
+        self.__test_iface_id = self.detect_test_iface_id()
+
+    def detect_test_iface_id(self: 'Server') -> None:
+        """
+        Detect the test interface's DPDK ID.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        """
+        output = self.exec("dpdk-devbind.py -s | grep 'drv=igb_uio'")
+
+        for num, line in enumerate(output.splitlines()):
+            if line.startswith(self.test_iface_addr):
+                self.__test_iface_id = num
+                break
+
+    def setup_hugetlbfs(self: 'Server'):
+        """
+        Setup hugepage interface.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        """
+        self.exec(f"cd {self.moongen_dir}; sudo ./setup-hugetlbfs.sh")
 
 class Host(Server):
     """
