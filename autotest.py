@@ -37,8 +37,6 @@ class Server(object):
     ----------
     fqdn : str
         The fully qualified domain name of the server.
-    ssh_port : int
-        The port of the SSH server.
     localhost : bool
         True if the server is localhost.
     test_iface : str
@@ -78,7 +76,6 @@ class Server(object):
     test_iface_addr: str
     moongen_dir: str
     localhost: bool = False
-    ssh_port: int = 22
 
     def __post_init__(self: 'Server') -> None:
         """
@@ -169,7 +166,7 @@ class Server(object):
         exec : Execute command on the server.
         __exec_local : Execute a command on the localhost.
         """
-        return check_output(f'ssh -p {self.ssh_port} {self.fqdn} {command}',
+        return check_output(f"ssh {self.fqdn} '{command}'",
                             shell=True).decode('utf-8')
 
     def exec(self: 'Server', command: str) -> str:
@@ -423,7 +420,6 @@ class Host(Server):
                  test_iface: str,
                  test_iface_addr: str,
                  moongen_dir: str,
-                 ssh_port: int = 22,
                  localhost: bool = False) -> None:
         """
         Initialize the Host class.
@@ -432,8 +428,6 @@ class Host(Server):
         ----------
         fqdn : str
             The fully qualified domain name of the host.
-        ssh_port : int
-            The port of the SSH server.
         test_iface : str
             The name of the test interface.
         test_iface_addr : str
@@ -457,8 +451,8 @@ class Host(Server):
         >>> Host('server.test.de')
         Host(fqdn='server.test.de')
         """
-        super().__init__(fqdn, ssh_port, localhost, test_iface,
-                         test_iface_addr)
+        super().__init__(fqdn, test_iface, test_iface_addr, moongen_dir,
+                         localhost)
 
 
 class Guest(Server):
@@ -483,8 +477,8 @@ class Guest(Server):
                  fqdn: str,
                  test_iface: str,
                  test_iface_addr: str,
-                 moongen_dir: str,
-                 ssh_port: int = 22) -> None:
+                 moongen_dir: str
+                 ) -> None:
         """
         Initialize the Guest class.
 
@@ -498,8 +492,6 @@ class Guest(Server):
             The IP address of the test interface.
         moongen_dir : str
             The directory of the MoonGen installation.
-        ssh_port : int
-            The port of the SSH server.
         localhost : bool
             True if the host is localhost.
 
@@ -517,8 +509,7 @@ class Guest(Server):
         >>> Guest('server.test.de')
         Guest(fqdn='server.test.de')
         """
-        super().__init__(fqdn, test_iface, test_iface_addr, moongen_dir,
-                         ssh_port)
+        super().__init__(fqdn, test_iface, test_iface_addr, moongen_dir)
 
 
 class LoadGen(Server):
@@ -545,7 +536,6 @@ class LoadGen(Server):
                  test_iface: str,
                  test_iface_addr: str,
                  moongen_dir: str,
-                 ssh_port: int = 22,
                  localhost: bool = False) -> None:
         """
         Initialize the LoadGen class.
@@ -560,8 +550,6 @@ class LoadGen(Server):
             The IP address of the test interface.
         moongen_dir : str
             The directory of the MoonGen installation.
-        ssh_port : int
-            The port of the SSH server.
         localhost : bool
             True if the host is localhost.
 
@@ -580,7 +568,7 @@ class LoadGen(Server):
         LoadGen(fqdn='server.test.de')
         """
         super().__init__(fqdn, test_iface, test_iface_addr, moongen_dir,
-                         ssh_port, localhost)
+                         localhost)
 
 
 # functions
