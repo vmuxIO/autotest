@@ -397,6 +397,26 @@ class Server(object):
         else:
             self.__scp_from(source, destination)
 
+    def get_driver_for_device(self: 'Server', device_addr: str) -> str:
+        """
+        Get the driver for a device.
+
+        Parameters
+        ----------
+        device : str
+            The device's PCI bus address.
+
+        Returns
+        -------
+        str
+            The driver for the device.
+
+        See Also
+        --------
+        """
+        return self.exec(f"lspci -v -s {device_addr} | grep driver " +
+                         "| cut -d':' -f 2").strip()
+
 
 class Host(Server):
     """
