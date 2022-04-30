@@ -365,6 +365,23 @@ class Server(object):
 
 
 # functions
+def __do_nothing(variable):
+    """
+    Do nothing with the given variable.
+
+    This is just to prevent linting errors for unused variables.
+
+    Parameters
+    ----------
+    variable : any
+        The variable to do nothing with.
+
+    Returns
+    -------
+    """
+    pass
+
+
 def setup_parser() -> ArgumentParser:
     """
     Setup the argument parser.
