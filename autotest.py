@@ -33,8 +33,37 @@ class Server(object):
 
     This class represents a server.
 
-    Parameters
+    Attributes
     ----------
+    fqdn : str
+        The fully qualified domain name of the server.
+    ssh_port : int
+        The port of the SSH server.
+    localhost : bool
+        True if the server is localhost.
+    test_iface : str
+        The name of the interface to test.
+    test_iface_addr : str
+        The PCI bus address of the interface to test.
+    moongen_dir : str
+        The directory of the MoonGen installation.
+
+    Methods
+    -------
+    __init__ : Initialize the object.
+    __post_init__ : Post initialization.
+    is_reachable : Check if the server is reachable.
+    __exec_local : Execute a command on the localhost.
+    __exec_ssh : Execute a command on the server over SSH.
+    exec : Execute command on the server.
+    tmux_new : Start a tmux session on the server.
+    tmux_kill : Stop a tmux session on the server.
+    tmux_send_keys : Send keys to a tmux session on the server.
+    __copy_local : Copy a file to the localhost.
+    __scp_to : Copy a file to the server.
+    __scp_from : Copy a file from the server.
+    copy_to : Copy a file to the server.
+    copy_from : Copy a file from the server.
 
     See Also
     --------
@@ -45,6 +74,9 @@ class Server(object):
     Server(fqdn='server.test.de')
     """
     fqdn: str
+    test_iface: str
+    test_iface_addr: str
+    moongen_dir: str
     localhost: bool = False
     ssh_port: int = 22
 
@@ -374,9 +406,6 @@ class Host(Server):
     This class represents a host, so the server that runs guest VMs. In out
     case it is also used for physical NIC tests.
 
-    Parameters
-    ----------
-
     See Also
     --------
     Server : Server class.
@@ -391,6 +420,9 @@ class Host(Server):
 
     def __init__(self: 'Host',
                  fqdn: str,
+                 test_iface: str,
+                 test_iface_addr: str,
+                 moongen_dir: str,
                  ssh_port: int = 22,
                  localhost: bool = False) -> None:
         """
@@ -402,6 +434,12 @@ class Host(Server):
             The fully qualified domain name of the host.
         ssh_port : int
             The port of the SSH server.
+        test_iface : str
+            The name of the test interface.
+        test_iface_addr : str
+            The IP address of the test interface.
+        moongen_dir : str
+            The directory of the MoonGen installation.
         localhost : bool
             True if the host is localhost.
 
@@ -419,7 +457,8 @@ class Host(Server):
         >>> Host('server.test.de')
         Host(fqdn='server.test.de')
         """
-        super().__init__(fqdn, ssh_port, localhost)
+        super().__init__(fqdn, ssh_port, localhost, test_iface,
+                         test_iface_addr)
 
 
 class Guest(Server):
@@ -427,9 +466,6 @@ class Guest(Server):
     Guest class.
 
     This class represents a guest, so the VM run on the host.
-
-    Parameters
-    ----------
 
     See Also
     --------
@@ -445,8 +481,10 @@ class Guest(Server):
 
     def __init__(self: 'Guest',
                  fqdn: str,
-                 ssh_port: int = 22,
-                 localhost: bool = False) -> None:
+                 test_iface: str,
+                 test_iface_addr: str,
+                 moongen_dir: str,
+                 ssh_port: int = 22) -> None:
         """
         Initialize the Guest class.
 
@@ -454,6 +492,12 @@ class Guest(Server):
         ----------
         fqdn : str
             The fully qualified domain name of the guest.
+        test_iface : str
+            The name of the test interface.
+        test_iface_addr : str
+            The IP address of the test interface.
+        moongen_dir : str
+            The directory of the MoonGen installation.
         ssh_port : int
             The port of the SSH server.
         localhost : bool
@@ -473,7 +517,8 @@ class Guest(Server):
         >>> Guest('server.test.de')
         Guest(fqdn='server.test.de')
         """
-        super().__init__(fqdn, ssh_port, localhost)
+        super().__init__(fqdn, test_iface, test_iface_addr, moongen_dir,
+                         ssh_port)
 
 
 class LoadGen(Server):
@@ -482,9 +527,6 @@ class LoadGen(Server):
 
     This class represents a loadgen server, so the server that runs the load
     generator against the host and guest.
-
-    Parameters
-    ----------
 
     See Also
     --------
@@ -500,6 +542,9 @@ class LoadGen(Server):
 
     def __init__(self: 'LoadGen',
                  fqdn: str,
+                 test_iface: str,
+                 test_iface_addr: str,
+                 moongen_dir: str,
                  ssh_port: int = 22,
                  localhost: bool = False) -> None:
         """
@@ -509,6 +554,12 @@ class LoadGen(Server):
         ----------
         fqdn : str
             The fully qualified domain name of the load generator.
+        test_iface : str
+            The name of the test interface.
+        test_iface_addr : str
+            The IP address of the test interface.
+        moongen_dir : str
+            The directory of the MoonGen installation.
         ssh_port : int
             The port of the SSH server.
         localhost : bool
@@ -528,7 +579,8 @@ class LoadGen(Server):
         >>> LoadGen('server.test.de')
         LoadGen(fqdn='server.test.de')
         """
-        super().__init__(fqdn, ssh_port, localhost)
+        super().__init__(fqdn, test_iface, test_iface_addr, moongen_dir,
+                         ssh_port, localhost)
 
 
 # functions
@@ -732,11 +784,26 @@ def create_servers(conf: ConfigParser,
     """
     servers = {}
     if host:
-        servers['host'] = Host(conf['host']['fqdn'])
+        servers['host'] = Host(
+            conf['host']['fqdn'],
+            conf['host']['test_iface'],
+            conf['host']['test_iface_addr'],
+            conf['host']['moongen_dir']
+        )
     if guest:
-        servers['guest'] = Guest(conf['guest']['fqdn'])
+        servers['guest'] = Guest(
+            conf['guest']['fqdn'],
+            conf['guest']['test_iface'],
+            conf['guest']['test_iface_addr'],
+            conf['guest']['moongen_dir']
+        )
     if loadgen:
-        servers['loadgen'] = LoadGen(conf['loadgen']['fqdn'])
+        servers['loadgen'] = LoadGen(
+            conf['loadgen']['fqdn'],
+            conf['loadgen']['test_iface'],
+            conf['loadgen']['test_iface_addr'],
+            conf['loadgen']['moongen_dir']
+        )
     return servers
 
 
