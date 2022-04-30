@@ -520,6 +520,45 @@ def setup_logging(args):
                 level=LOG_LEVELS[args.verbosity])
 
 
+def create_servers(conf: ConfigParser,
+                   host=True, guest=True, loadgen=True) -> dict[Server]:
+    """
+    Create the servers.
+
+    Parameters
+    ----------
+    conf : ConfigParser
+        The config parser.
+    host : bool
+        Create the host server.
+    guest : bool
+        Create the guest server.
+    loadgen : bool
+        Create the loadgen server.
+
+    Returns
+    -------
+    Dict[Server]
+        A dictionary of servers.
+
+    See Also
+    --------
+
+    Example
+    -------
+    >>> create_servers(conf)
+    {'host': Server(...)}
+    """
+    servers = {}
+    if host:
+        servers['host'] = Server(conf['host']['fqdn'])
+    if guest:
+        servers['guest'] = Server(conf['guest']['fqdn'])
+    if loadgen:
+        servers['loadgen'] = Server(conf['loadgen']['fqdn'])
+    return servers
+
+
 # main function
 def main():
     """
