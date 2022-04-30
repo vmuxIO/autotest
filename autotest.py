@@ -609,6 +609,9 @@ def execute_command(args: Namespace, conf: ConfigParser) -> None:
     """
     Execute the function for the given command.
 
+    This function runs the function corresponding to the high level command
+    given by the user.
+
     Parameters
     ----------
     args : Namespace
