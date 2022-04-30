@@ -367,6 +367,170 @@ class Server(object):
             self.__scp_from(source, destination)
 
 
+class Host(Server):
+    """
+    Host class.
+
+    This class represents a host, so the server that runs guest VMs. In out
+    case it is also used for physical NIC tests.
+
+    Parameters
+    ----------
+
+    See Also
+    --------
+    Server : Server class.
+    Guest : Guest class.
+    LoadGen : LoadGen class.
+
+    Examples
+    --------
+    >>> Host('server.test.de')
+    Host(fqdn='server.test.de')
+    """
+
+    def __init__(self: 'Host',
+                 fqdn: str,
+                 ssh_port: int = 22,
+                 localhost: bool = False) -> None:
+        """
+        Initialize the Host class.
+
+        Parameters
+        ----------
+        fqdn : str
+            The fully qualified domain name of the host.
+        ssh_port : int
+            The port of the SSH server.
+        localhost : bool
+            True if the host is localhost.
+
+        Returns
+        -------
+        Host : The Host object.
+
+        See Also
+        --------
+        Server : The Server class.
+        Server.__init__ : Initialize the Server class.
+
+        Examples
+        --------
+        >>> Host('server.test.de')
+        Host(fqdn='server.test.de')
+        """
+        super().__init__(fqdn, ssh_port, localhost)
+
+
+class Guest(Server):
+    """
+    Guest class.
+
+    This class represents a guest, so the VM run on the host.
+
+    Parameters
+    ----------
+
+    See Also
+    --------
+    Server : The Server class.
+    Host : The Host class.
+    LoadGen : The LoadGen class.
+
+    Examples
+    --------
+    >>> Guest('server.test.de')
+    Guest(fqdn='server.test.de')
+    """
+
+    def __init__(self: 'Guest',
+                 fqdn: str,
+                 ssh_port: int = 22,
+                 localhost: bool = False) -> None:
+        """
+        Initialize the Guest class.
+
+        Parameters
+        ----------
+        fqdn : str
+            The fully qualified domain name of the guest.
+        ssh_port : int
+            The port of the SSH server.
+        localhost : bool
+            True if the host is localhost.
+
+        Returns
+        -------
+        Guest : The Guest object.
+
+        See Also
+        --------
+        Server : The Server class.
+        Server.__init__ : Initialize the Server class.
+
+        Examples
+        --------
+        >>> Guest('server.test.de')
+        Guest(fqdn='server.test.de')
+        """
+        super().__init__(fqdn, ssh_port, localhost)
+
+
+class LoadGen(Server):
+    """
+    LoadGen class.
+
+    This class represents a loadgen server, so the server that runs the load
+    generator against the host and guest.
+
+    Parameters
+    ----------
+
+    See Also
+    --------
+    Server : The Server class.
+    Host : The Host class.
+    Guest : The Guest class.
+
+    Examples
+    --------
+    >>> LoadGen('server.test.de')
+    LoadGen(fqdn='server.test.de')
+    """
+
+    def __init__(self: 'LoadGen',
+                 fqdn: str,
+                 ssh_port: int = 22,
+                 localhost: bool = False) -> None:
+        """
+        Initialize the LoadGen class.
+
+        Parameters
+        ----------
+        fqdn : str
+            The fully qualified domain name of the load generator.
+        ssh_port : int
+            The port of the SSH server.
+        localhost : bool
+            True if the host is localhost.
+
+        Returns
+        -------
+        LoadGen : The LoadGen object.
+
+        See Also
+        --------
+        Server : The Server class.
+        Server.__init__ : Initialize the Server class.
+
+        Examples
+        --------
+        >>> LoadGen('server.test.de')
+        LoadGen(fqdn='server.test.de')
+        """
+        super().__init__(fqdn, ssh_port, localhost)
+
+
 # functions
 def __do_nothing(variable: any) -> None:
     """
@@ -564,15 +728,15 @@ def create_servers(conf: ConfigParser,
     Example
     -------
     >>> create_servers(conf)
-    {'host': Server(...)}
+    {'host': Host(...), ...}
     """
     servers = {}
     if host:
-        servers['host'] = Server(conf['host']['fqdn'])
+        servers['host'] = Host(conf['host']['fqdn'])
     if guest:
-        servers['guest'] = Server(conf['guest']['fqdn'])
+        servers['guest'] = Guest(conf['guest']['fqdn'])
     if loadgen:
-        servers['loadgen'] = Server(conf['loadgen']['fqdn'])
+        servers['loadgen'] = LoadGen(conf['loadgen']['fqdn'])
     return servers
 
 
