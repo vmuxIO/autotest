@@ -220,7 +220,7 @@ class Server(object):
         tmux_kill : Stop a tmux session on the server.
         tmux_send_keys : Send keys to a tmux session on the server.
         """
-        self.exec(f'tmux new -s {session_name} -d {command}')
+        self.exec(f'tmux new-session -s {session_name} -d "{command}"')
 
     def tmux_kill(self: 'Server', session_name: str) -> None:
         """
