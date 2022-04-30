@@ -481,6 +481,24 @@ def setup_and_parse_config(args: Namespace) -> ConfigParser:
 
 
 def setup_logging(args):
+    """
+    Setup the logging.
+
+    Parameters
+    ----------
+    args : Namespace
+        The argparse namespace containing the parsed arguments.
+
+    Returns
+    -------
+
+    See Also
+    --------
+
+    Example
+    -------
+    >>> setup_logging(args)
+    """
     basicConfig(format='%(asctime)s %(levelname)s %(message)s',
                 level=LOG_LEVELS[args.verbosity])
 
