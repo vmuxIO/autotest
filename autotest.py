@@ -417,6 +417,20 @@ class Server(object):
         return self.exec(f"lspci -v -s {device_addr} | grep driver " +
                          "| cut -d':' -f 2").strip()
 
+    def is_test_iface_bound(self: 'Server') -> bool:
+        """
+        Check if the test interface is bound to DPDK.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        bool
+            True if the test interface is bound to DPDK.
+        """
+        return self.get_driver_for_device(self.test_iface_addr) == 'igb_uio'
+
 
 class Host(Server):
     """
