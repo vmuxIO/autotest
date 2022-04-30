@@ -483,6 +483,35 @@ class Server(object):
         """
         self.exec(f"cd {self.moongen_dir}; sudo ./setup-hugetlbfs.sh")
 
+    def start_l2_reflector(self: 'Server'):
+        """
+        Start the libmoon L2 reflector.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        """
+        tbbmalloc_path = ('./build/libmoon/tbb_cmake_build/' +
+                          'tbb_cmake_build_subdir_release/libtbbmalloc.so.2')
+        self.tmux_new('reflector', f'cd {self.moongen_dir}; ' +
+                      f'sudo LD_PRELOAD={tbbmalloc_path} build/MoonGen ' +
+                      f'libmoon/examples/reflector.lua {self.__test_iface_id}')
+
+    def stop_l2_reflector(self: 'Server'):
+        """
+        Stop the libmoon L2 reflector.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        """
+        self.tmux_kill('reflector')
+
+
 class Host(Server):
     """
     Host class.
