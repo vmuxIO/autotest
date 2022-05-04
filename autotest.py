@@ -74,7 +74,7 @@ class Server(object):
     fqdn: str
     test_iface: str
     test_iface_addr: str
-    __test_iface_id: int = field(default=None, init=False)
+    _test_iface_id: int = field(default=None, init=False)
     moongen_dir: str
     localhost: bool = False
 
@@ -444,7 +444,7 @@ class Server(object):
         # check if test interface is already bound
         if self.is_test_iface_bound():
             debug(f"{self.fqdn}'s test interface already bound to DPDK.")
-            if not self.__test_iface_id:
+            if not self._test_iface_id:
                 self.detect_test_iface_id()
             return
 
@@ -452,7 +452,7 @@ class Server(object):
         self.exec(f"cd {self.moongen_dir}; sudo ./bind_interfaces.sh")
 
         # get the test interface id
-        self.__test_iface_id = self.detect_test_iface_id()
+        self._test_iface_id = self.detect_test_iface_id()
 
     def detect_test_iface_id(self: 'Server') -> None:
         """
@@ -468,7 +468,7 @@ class Server(object):
 
         for num, line in enumerate(output.splitlines()):
             if line.startswith(self.test_iface_addr):
-                self.__test_iface_id = num
+                self._test_iface_id = num
                 break
 
     def setup_hugetlbfs(self: 'Server'):
@@ -497,7 +497,7 @@ class Server(object):
                           'tbb_cmake_build_subdir_release/libtbbmalloc.so.2')
         self.tmux_new('reflector', f'cd {self.moongen_dir}; ' +
                       f'sudo LD_PRELOAD={tbbmalloc_path} build/MoonGen ' +
-                      f'libmoon/examples/reflector.lua {self.__test_iface_id}')
+                      f'libmoon/examples/reflector.lua {self._test_iface_id}')
 
     def stop_l2_reflector(self: 'Server'):
         """
