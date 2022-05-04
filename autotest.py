@@ -868,6 +868,9 @@ def create_servers(conf: ConfigParser,
     """
     Create the servers.
 
+    Note that the insertion order of the servers is host, guest and finally
+    loadgen.
+
     Parameters
     ----------
     conf : ConfigParser
