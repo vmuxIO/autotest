@@ -453,7 +453,7 @@ class Server(object):
         self.exec(f'cd {self.moongen_dir}; sudo ./bind_interfaces.sh')
 
         # get the test interface id
-        self._test_iface_id = self.detect_test_iface_id()
+        self.detect_test_iface_id()
 
     def detect_test_iface_id(self: 'Server') -> None:
         """
