@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from socket import getfqdn
 from subprocess import check_output, CalledProcessError
 from sys import argv, stdin, stdout, stderr, modules
+from time import sleep
 
 
 # constants
@@ -971,6 +972,48 @@ def ping(args: Namespace, conf: ConfigParser) -> None:
     for name, server in create_servers(conf).items():
         print(f'{name}: ' +
               f"{'reachable' if server.is_reachable() else 'unreachable'}")
+
+
+def test_pnic(args: Namespace, conf: ConfigParser) -> None:
+    """
+    Test the physical NIC.
+
+    This a command function and is therefore called by execute_command().
+
+    Parameters
+    ----------
+    args : Namespace
+        The argparse namespace containing the parsed arguments.
+    conf : ConfigParser
+        The config parser.
+
+    Returns
+    -------
+
+    See Also
+    --------
+    execute_command : Execute the command.
+
+    Example
+    -------
+    >>> test_physical_nic(args, conf)
+    """
+    host, loadgen = create_servers(conf, guest=False).values()
+
+    loadgen.bind_test_iface()
+    host.bind_test_iface()
+
+    loadgen.setup_hugetlbfs()
+    host.setup_hugetlbfs()
+
+    runtime = 60
+
+    try:
+        host.start_l2_reflector()
+        loadgen.run_l2_load_latency(runtime)
+        sleep(1.1*runtime)
+    finally:
+        host.stop_l2_reflector()
 
 
 def execute_command(args: Namespace, conf: ConfigParser) -> None:
