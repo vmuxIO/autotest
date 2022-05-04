@@ -415,8 +415,8 @@ class Server(object):
         See Also
         --------
         """
-        return self.exec(f"lspci -v -s {device_addr} | grep driver " +
-                         "| cut -d':' -f 2").strip()
+        return self.exec(f'lspci -v -s {device_addr} | grep driver ' +
+                         '| cut -d":" -f 2 | tr -d " "')
 
     def is_test_iface_bound(self: 'Server') -> bool:
         """
@@ -450,7 +450,7 @@ class Server(object):
             return
 
         # bind available interfaces to DPDK
-        self.exec(f"cd {self.moongen_dir}; sudo ./bind_interfaces.sh")
+        self.exec(f'cd {self.moongen_dir}; sudo ./bind_interfaces.sh')
 
         # get the test interface id
         self._test_iface_id = self.detect_test_iface_id()
