@@ -686,6 +686,30 @@ class LoadGen(Server):
         super().__init__(fqdn, test_iface, test_iface_addr, moongen_dir,
                          localhost)
 
+    def run_l2_load_latency(self: 'LoadGen', runtime: int = 60):
+        """
+        Run the MoonGen L2 load latency test.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
+        See Also
+        --------
+
+        Example
+        -------
+        >>> LoadGen('server.test.de').start_l2_load_latency()
+        """
+        tbbmalloc_path = ('./build/libmoon/tbb_cmake_build/' +
+                          'tbb_cmake_build_subdir_release/libtbbmalloc.so.2')
+        self.tmux_new('loadlatency', f'cd {self.moongen_dir}; ' +
+                      f'sudo LD_PRELOAD={tbbmalloc_path} timeout {runtime} ' +
+                      'build/MoonGen examples/l2-load-latency.lua ' +
+                      f'{self._test_iface_id} {self._test_iface_id}')
+
 
 # functions
 def __do_nothing(variable: any) -> None:
