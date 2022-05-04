@@ -758,6 +758,12 @@ def setup_parser() -> ArgumentParser:
 
     ping_parser = subparsers.add_parser('ping',
                                         help='''Ping all servers.''')
+    # TODO a status command would be cool. It should tell us, which nodes
+    # are running and how the device status is maybe
+    # TODO note this is just temporary, we will have more genernic commands
+    # later
+    test_pnic_parser = subparsers.add_parser('test-pnic',
+                                             help='Test the physical NIC.')
 
     __do_nothing(ping_parser)
 
