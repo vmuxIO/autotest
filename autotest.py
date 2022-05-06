@@ -1015,6 +1015,8 @@ def ping(args: Namespace, conf: ConfigParser) -> None:
     -------
     >>> ping(args, conf)
     """
+    name: str
+    server: Server
     for name, server in create_servers(conf).items():
         print(f'{name}: ' +
               f"{'reachable' if server.is_reachable() else 'unreachable'}")
@@ -1044,6 +1046,8 @@ def test_pnic(args: Namespace, conf: ConfigParser) -> None:
     -------
     >>> test_physical_nic(args, conf)
     """
+    host: Host
+    loadgen: LoadGen
     host, loadgen = create_servers(conf, guest=False).values()
 
     loadgen.bind_test_iface()
@@ -1086,7 +1090,7 @@ def run_guest(args: Namespace, conf: ConfigParser) -> None:
     -------
     >>> run_guest(args, conf)
     """
-    host = create_servers(conf, guest=False, loadgen=False)['host']
+    host: Host = create_servers(conf, guest=False, loadgen=False)['host']
 
     try:
         host.run_guest()
@@ -1118,7 +1122,7 @@ def kill_guest(args: Namespace, conf: ConfigParser) -> None:
     -------
     >>> kill_guest(args, conf)
     """
-    host = create_servers(conf, guest=False, loadgen=False)['host']
+    host: Host = create_servers(conf, guest=False, loadgen=False)['host']
 
     host.kill_guest()
 
