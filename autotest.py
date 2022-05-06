@@ -571,6 +571,45 @@ class Host(Server):
         super().__init__(fqdn, test_iface, test_iface_addr, moongen_dir,
                          localhost)
 
+    def run_guest(self: 'Host') -> None:
+        # TODO this function should get a Guest object as argument
+        """
+        Run a guest VM.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        """
+        # TODO this command should be build by the Guest object
+        # it should take all the settings from the config file
+        # and compile them.
+        self.tmux_new(
+            'qemu',
+            'qemu-system-x86_64' +
+            ' -cpu host' +
+            ' -smp 4' +
+            ' -m 4096' +
+            ' -enable-kvm' +
+            ' -drive format=raw,file=/dev/ssd/vm_test,if=virtio,cache=none' +
+            ' -cdrom /home/networkadmin/images/test_init.iso' +
+            ' -serial stdio'
+            # TODO network settings
+            )
+
+    def kill_guest(self: 'Host') -> None:
+        """
+        Kill a guest VM.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        """
+        self.tmux_kill('qemu')
+
 
 class Guest(Server):
     """
@@ -789,8 +828,15 @@ def setup_parser() -> ArgumentParser:
     # later
     test_pnic_parser = subparsers.add_parser('test-pnic',
                                              help='Test the physical NIC.')
+    run_guest_parser = subparsers.add_parser('run-guest',
+                                             help='Run the guest VM.')
+    kill_guest_parser = subparsers.add_parser('kill-guest',
+                                              help='Kill the guest VM.')
 
     __do_nothing(ping_parser)
+    __do_nothing(test_pnic_parser)
+    __do_nothing(run_guest_parser)
+    __do_nothing(kill_guest_parser)
 
     # return the parser
     return parser
@@ -1014,6 +1060,67 @@ def test_pnic(args: Namespace, conf: ConfigParser) -> None:
         sleep(1.1*runtime)
     finally:
         host.stop_l2_reflector()
+
+
+def run_guest(args: Namespace, conf: ConfigParser) -> None:
+    """
+    Run the guest VM.
+
+    This a command function and is therefore called by execute_command().
+
+    Parameters
+    ----------
+    args : Namespace
+        The argparse namespace containing the parsed arguments.
+    conf : ConfigParser
+        The config parser.
+
+    Returns
+    -------
+
+    See Also
+    --------
+    execute_command : Execute the command.
+
+    Example
+    -------
+    >>> run_guest(args, conf)
+    """
+    host = create_servers(conf, guest=False, loadgen=False)['host']
+
+    try:
+        host.run_guest()
+    except Exception:
+        host.kill_guest()
+
+
+def kill_guest(args: Namespace, conf: ConfigParser) -> None:
+    """
+    Kill the guest VM.
+
+    This a command function and is therefore called by execute_command().
+
+    Parameters
+    ----------
+    args : Namespace
+        The argparse namespace containing the parsed arguments.
+    conf : ConfigParser
+        The config parser.
+
+    Returns
+    -------
+
+    See Also
+    --------
+    execute_command : Execute the command.
+
+    Example
+    -------
+    >>> kill_guest(args, conf)
+    """
+    host = create_servers(conf, guest=False, loadgen=False)['host']
+
+    host.kill_guest()
 
 
 def execute_command(args: Namespace, conf: ConfigParser) -> None:
