@@ -571,6 +571,23 @@ class Host(Server):
         super().__init__(fqdn, test_iface, test_iface_addr, moongen_dir,
                          localhost)
 
+    def setup_admin_tap(self: 'Host'):
+        """
+        Setup the admin tap.
+
+        This sets up the tap device for the admin interface of the guest VM.
+        So the interface to SSH connections and stuff.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        """
+        self.exec('ip link tap0 || sudo tunctl -t tap0 -u networkadmin' +
+                  ' && sudo brctl addif br0 tap 0; true')
+        self.exec('sudo ip link set tap0 up')
+
     def run_guest(self: 'Host') -> None:
         # TODO this function should get a Guest object as argument
         """
@@ -594,7 +611,10 @@ class Host(Server):
             ' -enable-kvm' +
             ' -drive format=raw,file=/dev/ssd/vm_test,if=virtio,cache=none' +
             ' -cdrom /home/networkadmin/images/test_init.iso' +
-            ' -serial stdio'
+            ' -serial stdio' +
+            ' -netdev tap,vhost=on,id=admin0,ifname=tap0,script=no,' +
+            'downscript=no' +
+            ' -device virtio-net-pci,netdev=admin0,mac=52:54:00:fa:00:5f'
             # TODO network settings
             )
 
@@ -1093,6 +1113,7 @@ def run_guest(args: Namespace, conf: ConfigParser) -> None:
     host: Host = create_servers(conf, guest=False, loadgen=False)['host']
 
     try:
+        host.setup_admin_tap()
         host.run_guest()
     except Exception:
         host.kill_guest()
