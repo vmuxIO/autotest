@@ -1146,6 +1146,8 @@ def test_pnic(args: Namespace, conf: ConfigParser) -> None:
         host.start_l2_reflector()
         loadgen.run_l2_load_latency(runtime)
         sleep(1.1*runtime)
+    except Exception:
+        loadgen.stop_l2_load_latency()
     finally:
         host.stop_l2_reflector()
 
