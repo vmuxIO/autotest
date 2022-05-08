@@ -590,6 +590,55 @@ class Host(Server):
                   ' && sudo brctl addif br0 tap0; true)')
         self.exec('sudo ip link set tap0 up')
 
+    def setup_test_br_tap(self: 'Host'):
+        """
+        Setup the bridged test tap device.
+
+        This sets up the tap device for the test interface of the guest VM.
+        So the VirtIO device.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        """
+        # load kernel modules
+        self.exec('sudo modprobe tun tap')
+
+        # create bridge and tap device
+        self.exec('sudo ip link show br1 2>/dev/null || sudo brctl addbr br1')
+        self.exec('sudo ip link show tap1 2>/dev/null || ' +
+                  'sudo ip tuntap add dev tap1 mode tap user networkadmin ' +
+                  'multi_queue')
+
+        # add tap device and physical nic to bridge
+        tap1_output = self.exec('sudo ip link show tap1')
+        if 'master br1' not in tap1_output:
+            self.exec('sudo brctl addif br1 tap1')
+        test_iface_output = self.exec(f'sudo ip link show {self.test_iface}')
+        if 'master br1' not in test_iface_output:
+            self.exec(f'sudo brctl addif br1 {self.test_iface}')
+
+        # bring up all interfaces (nic, bridge and tap)
+        self.exec(f'sudo ip link set {self.test_iface} up ' +
+                  '&& sudo ip link set br1 up && sudo ip link set tap1 up')
+
+    def destroy_br_tap(self: 'Host'):
+        """
+        Destroy the bridged test tap device.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        """
+        self.exec('sudo ip link set tap1 down')
+        self.exec('sudo brctl delif br1 tap1')
+        self.exec('sudo ip link delete tap1')
+        self.exec('sudo brctl delbr br1')
+
     def run_guest(self: 'Host') -> None:
         # TODO this function should get a Guest object as argument
         """
