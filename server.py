@@ -3,10 +3,11 @@ from subprocess import check_output, CalledProcessError
 from socket import getfqdn
 from logging import (error, info, warn, debug, basicConfig,
                      DEBUG, INFO, WARN, ERROR)
+from abc import ABC
 
 
 @dataclass
-class Server(object):
+class Server(ABC):
     """
     Server class.
 
