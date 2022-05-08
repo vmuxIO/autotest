@@ -1128,7 +1128,7 @@ def test_pnic(args: Namespace, conf: ConfigParser) -> None:
 
     Example
     -------
-    >>> test_physical_nic(args, conf)
+    >>> test_pnic(args, conf)
     """
     host: Host
     loadgen: LoadGen
