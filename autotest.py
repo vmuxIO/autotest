@@ -450,7 +450,7 @@ class Server(object):
             return
 
         # bind available interfaces to DPDK
-        self.exec(f'cd {self.moongen_dir}; sudo ./bind_interfaces.sh')
+        self.exec(f'cd {self.moongen_dir}; sudo ./bind-interfaces.sh')
 
         # get the test interface id
         self.detect_test_iface_id()
