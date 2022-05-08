@@ -584,8 +584,10 @@ class Host(Server):
         Returns
         -------
         """
-        self.exec('ip link tap0 || sudo tunctl -t tap0 -u networkadmin' +
-                  ' && sudo brctl addif br0 tap 0; true')
+        self.exec('sudo modprobe tun tap')
+        self.exec('sudo ip link show tap0 2>/dev/null' +
+                  ' || (sudo tunctl -t tap0 -u networkadmin' +
+                  ' && sudo brctl addif br0 tap0; true)')
         self.exec('sudo ip link set tap0 up')
 
     def run_guest(self: 'Host') -> None:
