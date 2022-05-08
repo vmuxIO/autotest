@@ -665,8 +665,10 @@ class Host(Server):
             ' -serial stdio' +
             ' -netdev tap,vhost=on,id=admin0,ifname=tap0,script=no,' +
             'downscript=no' +
-            ' -device virtio-net-pci,netdev=admin0,mac=52:54:00:fa:00:5f'
-            # TODO network settings
+            ' -device virtio-net-pci,netdev=admin0,mac=52:54:00:fa:00:5f' +
+            ' -netdev tap,vhost=on,id=admin1,ifname=tap1,script=no,' +
+            'downscript=no,queues=4' +
+            ' -device virtio-net-pci,netdev=admin1,mac=52:54:00:fa:00:60,mq=on'
             )
 
     def kill_guest(self: 'Host') -> None:
