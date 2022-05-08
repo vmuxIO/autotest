@@ -911,17 +911,20 @@ def setup_parser() -> ArgumentParser:
     # are running and how the device status is maybe
     # TODO note this is just temporary, we will have more genernic commands
     # later
-    test_pnic_parser = subparsers.add_parser('test-pnic',
-                                             help='Test the physical NIC.')
     run_guest_parser = subparsers.add_parser('run-guest',
                                              help='Run the guest VM.')
     kill_guest_parser = subparsers.add_parser('kill-guest',
                                               help='Kill the guest VM.')
+    test_pnic_parser = subparsers.add_parser('test-pnic',
+                                             help='Test the physical NIC.')
+    test_vnic_parser = subparsers.add_parser('test-vnic',
+                                             help='Test the VirtIO device.')
 
     __do_nothing(ping_parser)
-    __do_nothing(test_pnic_parser)
     __do_nothing(run_guest_parser)
     __do_nothing(kill_guest_parser)
+    __do_nothing(test_pnic_parser)
+    __do_nothing(test_vnic_parser)
 
     # return the parser
     return parser
@@ -1152,6 +1155,53 @@ def test_pnic(args: Namespace, conf: ConfigParser) -> None:
         loadgen.stop_l2_load_latency()
     finally:
         host.stop_l2_reflector()
+
+
+# TODO this will be replaced by something more generic done the line
+def test_vnic(args: Namespace, conf: ConfigParser) -> None:
+    """
+    Test the bridged TAP interface
+
+    This a command function and is therefore called by execute_command().
+
+    Parameters
+    ----------
+    args : Namespace
+        The argparse namespace containing the parsed arguments.
+    conf : ConfigParser
+        The config parser.
+
+    Returns
+    -------
+
+    See Also
+    --------
+    execute_command : Execute the command.
+
+    Example
+    -------
+    >>> test_pnic(args, conf)
+    """
+    guest: Guest
+    loadgen: LoadGen
+    guest, loadgen = create_servers(conf, host=False).values()
+
+    loadgen.bind_test_iface()
+    guest.bind_test_iface()
+
+    loadgen.setup_hugetlbfs()
+    guest.setup_hugetlbfs()
+
+    runtime = 60
+
+    try:
+        guest.start_l2_reflector()
+        loadgen.run_l2_load_latency(runtime)
+        sleep(1.1*runtime)
+    except Exception:
+        loadgen.stop_l2_load_latency()
+    finally:
+        guest.stop_l2_reflector()
 
 
 def run_guest(args: Namespace, conf: ConfigParser) -> None:
