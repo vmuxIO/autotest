@@ -821,6 +821,18 @@ class LoadGen(Server):
                       'build/MoonGen examples/l2-load-latency.lua ' +
                       f'{self._test_iface_id} {self._test_iface_id}')
 
+    def stop_l2_load_latency(self: 'Server'):
+        """
+        Stop the MoonGen L2 load latency test.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        """
+        self.tmux_kill('loadlatency')
+
 
 # functions
 def __do_nothing(variable: any) -> None:
