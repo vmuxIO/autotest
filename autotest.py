@@ -1182,6 +1182,7 @@ def run_guest(args: Namespace, conf: ConfigParser) -> None:
 
     try:
         host.setup_admin_tap()
+        host.setup_test_br_tap()
         host.run_guest()
     except Exception:
         host.kill_guest()
