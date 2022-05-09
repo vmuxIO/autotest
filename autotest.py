@@ -506,6 +506,7 @@ def kill_guest(args: Namespace, conf: ConfigParser) -> None:
     host: Host = create_servers(conf, guest=False, loadgen=False)['host']
 
     host.kill_guest()
+    host.cleanup_network()
 
 
 def execute_command(args: Namespace, conf: ConfigParser) -> None:
