@@ -665,7 +665,40 @@ class Host(Server):
         self.exec('sudo ip link delete tap1')
         self.exec('sudo brctl delbr br1')
 
-    def run_guest(self: 'Host') -> None:
+    def setup_test_macvtap(self: 'Host'):
+        """
+        Setup the macvtap test interface.
+
+        This sets up the macvtap device for the test interface of the guest VM.
+        So the VirtIO device.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        """
+        self.exec('sudo ip link show macvtap1 2>/dev/null' +
+                  ' || sudo ip link add link enp176s0 name macvtap1' +
+                  ' type macvtap')
+        self.exec('sudo ip link set macvtap1 address 52:54:00:fa:00:60 up')
+        self.exec('sudo ip link set enp176s0 up')
+        self.exec('sudo chmod 666' +
+                  ' /dev/tap$(cat /sys/class/net/macvtap1/ifindex)')
+
+    def destroy_macvtap(self: 'Host'):
+        """
+        Destroy the macvtap test interface.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        """
+        self.exec('sudo ip link delete macvtap1')
+
+    def run_guest(self: 'Host', net_type: str) -> None:
         # TODO this function should get a Guest object as argument
         """
         Run a guest VM.
@@ -679,6 +712,16 @@ class Host(Server):
         # TODO this command should be build by the Guest object
         # it should take all the settings from the config file
         # and compile them.
+        test_net_config = (
+            ' -netdev tap,vhost=on,id=admin1,ifname=tap1,script=no,' +
+            'downscript=no,queues=4' +
+            ' -device virtio-net-pci,netdev=admin1,mac=52:54:00:fa:00:60,mq=on'
+        ) if net_type == 'brtap' else (
+            ' -netdev tap,vhost=on,id=admin1,fd=3 3<>/dev/tap$(cat ' +
+            '/sys/class/net/macvtap1/ifindex) ' +
+            ' -device virtio-net-pci,netdev=admin1,mac=$(cat ' +
+            '/sys/class/net/macvtap1/address)'
+        )
         self.tmux_new(
             'qemu',
             'qemu-system-x86_64' +
@@ -692,9 +735,7 @@ class Host(Server):
             ' -netdev tap,vhost=on,id=admin0,ifname=tap0,script=no,' +
             'downscript=no' +
             ' -device virtio-net-pci,netdev=admin0,mac=52:54:00:fa:00:5f' +
-            ' -netdev tap,vhost=on,id=admin1,ifname=tap1,script=no,' +
-            'downscript=no,queues=4' +
-            ' -device virtio-net-pci,netdev=admin1,mac=52:54:00:fa:00:60,mq=on'
+            test_net_config
             )
 
     def kill_guest(self: 'Host') -> None:
