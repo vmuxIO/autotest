@@ -153,6 +153,15 @@ def setup_parser() -> ArgumentParser:
     #                                          help='Test the physical NIC.')
     # test_vnic_parser = subparsers.add_parser('test-vnic',
     #                                          help='Test the VirtIO device.')
+    test_parser = subparsers.add_parser('test-load-lat',
+                                        help='''Run load latency tests.''')
+    test_parser.add_argument('-t',
+                             '--testconfig',
+                             default='./tests.cfg',
+                             type=FileType('r'),
+                             help='Test configuration file path',
+                             )
+    # TODO maybe we want to alter test parameters directly via the arguments
 
     __do_nothing(ping_parser)
     __do_nothing(run_guest_parser)
