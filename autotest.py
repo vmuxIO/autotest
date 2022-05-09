@@ -287,6 +287,7 @@ def create_servers(conf: ConfigParser,
             conf['host']['fqdn'],
             conf['host']['test_iface'],
             conf['host']['test_iface_addr'],
+            conf['host']['test_iface_driv'],
             conf['host']['moongen_dir']
         )
     if guest:
@@ -294,6 +295,7 @@ def create_servers(conf: ConfigParser,
             conf['guest']['fqdn'],
             conf['guest']['test_iface'],
             conf['guest']['test_iface_addr'],
+            conf['guest']['test_iface_driv'],
             conf['guest']['moongen_dir']
         )
     if loadgen:
@@ -301,6 +303,7 @@ def create_servers(conf: ConfigParser,
             conf['loadgen']['fqdn'],
             conf['loadgen']['test_iface'],
             conf['loadgen']['test_iface_addr'],
+            conf['loadgen']['test_iface_driv'],
             conf['loadgen']['moongen_dir']
         )
     return servers

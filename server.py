@@ -23,6 +23,8 @@ class Server(ABC):
         The name of the interface to test.
     test_iface_addr : str
         The PCI bus address of the interface to test.
+    test_iface_driv : str
+        The default driver of the interface to test.
     moongen_dir : str
         The directory of the MoonGen installation.
 
@@ -55,6 +57,7 @@ class Server(ABC):
     test_iface: str
     test_iface_addr: str
     _test_iface_id: int = field(default=None, init=False)
+    test_iface_driv: str
     moongen_dir: str
     localhost: bool = False
 
@@ -465,6 +468,18 @@ class Server(ABC):
         # get the test interface id
         self.detect_test_iface_id()
 
+    def release_test_iface(self: 'Server') -> None:
+        """
+        Release test interface from DPDK.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        """
+        self.bind_device(self.test_iface_addr, self.test_iface_driv)
+
     def detect_test_iface_id(self: 'Server') -> None:
         """
         Detect the test interface's DPDK ID.
@@ -546,6 +561,7 @@ class Host(Server):
                  fqdn: str,
                  test_iface: str,
                  test_iface_addr: str,
+                 test_iface_driv: str,
                  moongen_dir: str,
                  localhost: bool = False) -> None:
         """
@@ -578,8 +594,8 @@ class Host(Server):
         >>> Host('server.test.de')
         Host(fqdn='server.test.de')
         """
-        super().__init__(fqdn, test_iface, test_iface_addr, moongen_dir,
-                         localhost)
+        super().__init__(fqdn, test_iface, test_iface_addr, test_iface_driv,
+                         moongen_dir, localhost)
 
     def setup_admin_tap(self: 'Host'):
         """
@@ -716,6 +732,7 @@ class Guest(Server):
                  fqdn: str,
                  test_iface: str,
                  test_iface_addr: str,
+                 test_iface_driv: str,
                  moongen_dir: str
                  ) -> None:
         """
@@ -748,7 +765,8 @@ class Guest(Server):
         >>> Guest('server.test.de')
         Guest(fqdn='server.test.de')
         """
-        super().__init__(fqdn, test_iface, test_iface_addr, moongen_dir)
+        super().__init__(fqdn, test_iface, test_iface_addr, test_iface_driv,
+                         moongen_dir)
 
 
 class LoadGen(Server):
