@@ -28,22 +28,6 @@ LOG_LEVELS: dict[int, int] = {
 }
 
 
-class NicTypes(Enum):
-    """
-    Enum for network interface types.
-    """
-    # Physical network interface card on the host machine
-    PHYSICAL: int = 0
-
-    # VirtIO TAP device of the guest
-    # bridged to the physical card on the host
-    BR_TAP: int = 1
-
-    # VirtIO MacVTap device of the guest
-    # attached to the physical card on the host
-    MACVTAP: int = 2
-
-
 # functions
 def format_command(command: str) -> str:
     """
