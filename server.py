@@ -412,6 +412,36 @@ class Server(ABC):
         """
         return self.get_driver_for_device(self.test_iface_addr) == 'igb_uio'
 
+    def bind_device(self: 'Server', dev_addr: str, driver: str) -> None:
+        """
+        Bind a device to a driver.
+
+        Parameters
+        ----------
+        dev_addr : str
+            The device's PCI bus address.
+        driver : str
+            The driver to bind the device to.
+
+        Returns
+        -------
+        """
+        self.exec(f'sudo dpdk-devbind.py -b {driver} {dev_addr}')
+
+    def unbind_device(self: 'Server', dev_addr: str) -> None:
+        """
+        Unbind a device from a driver.
+
+        Parameters
+        ----------
+        dev_addr : str
+            The device's PCI bus address.
+
+        Returns
+        -------
+        """
+        self.exec(f'sudo dpdk-devbind.py -u {dev_addr}')
+
     def bind_test_iface(self: 'Server') -> None:
         """
         Bind test interface to DPDK.
