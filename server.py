@@ -709,6 +709,21 @@ class Host(Server):
         """
         self.tmux_kill('qemu')
 
+    def cleanup_network(self: 'Host') -> None:
+        """
+        Cleanup the network setup.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        """
+        self.release_test_iface()
+        self.exec('sudo ip link delete tap1 2>/dev/null || true')
+        self.exec('sudo ip link delete br1 2>/dev/null || true')
+        self.exec('sudo ip link delete macvtap1 2>/dev/null || true')
+
 
 class Guest(Server):
     """
