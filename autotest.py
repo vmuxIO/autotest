@@ -64,10 +64,6 @@ def format_command(command: str) -> str:
     return formatted
 
 
-# classes
-
-
-# functions
 def __do_nothing(variable: any) -> None:
     """
     Do nothing with the given variable.
