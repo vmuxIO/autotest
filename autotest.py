@@ -3,7 +3,7 @@
 
 # imports
 from argparse import (ArgumentParser, ArgumentDefaultsHelpFormatter, Namespace,
-                      FileType)
+                      FileType, ArgumentTypeError)
 from argcomplete import autocomplete
 from configparser import ConfigParser
 from logging import (error, info, warn, debug, basicConfig,
@@ -12,6 +12,8 @@ from dataclasses import dataclass
 from sys import argv, stdin, stdout, stderr, modules
 from time import sleep
 from enum import Enum
+from os import (access, W_OK)
+from os.path import isdir
 
 # project imports
 from server import Server, Host, Guest, LoadGen
@@ -81,6 +83,27 @@ def __do_nothing(variable: any) -> None:
     pass
 
 
+def writable_dir(path: str) -> str:
+    """
+    Check if the given path is a writable directory.
+
+    Parameters
+    ----------
+    path : str
+        The path to check.
+
+    Returns
+    -------
+    str
+        The path if it is a writable directory.
+    """
+    if not isdir(path):
+        raise ArgumentTypeError(f'{path} is not a directory.')
+    if not access(path, W_OK):
+        raise ArgumentTypeError(f'{path} is not writable.')
+    return path
+
+
 def setup_parser() -> ArgumentParser:
     """
     Setup the argument parser.
@@ -140,8 +163,8 @@ def setup_parser() -> ArgumentParser:
     # later
     run_guest_parser = subparsers.add_parser('run-guest',
                                              help='Run the guest VM.')
-    run_guest_parser.add_argument('-n',
-                                  '--net-type',
+    run_guest_parser.add_argument('-i',
+                                  '--interface',
                                   type=str,
                                   choices=['brtap', 'macvtap'],
                                   default='brtap',
@@ -153,18 +176,78 @@ def setup_parser() -> ArgumentParser:
     #                                          help='Test the physical NIC.')
     # test_vnic_parser = subparsers.add_parser('test-vnic',
     #                                          help='Test the VirtIO device.')
-    test_parser = subparsers.add_parser('test-load-lat',
-                                        help='''Run load latency tests.''')
-    test_parser.add_argument('-t',
-                             '--testconfig',
-                             default='./tests.cfg',
-                             type=FileType('r'),
-                             help='Test configuration file path',
-                             )
+    test_file_parser = subparsers.add_parser(
+        'test-load-lat-file',
+        help='Run load latency tests defined in a test config file.'
+    )
+    test_file_parser.add_argument('-t',
+                                 '--testconfig',
+                                 default='./tests.cfg',
+                                 type=FileType('r'),
+                                 help='Test configuration file path',
+                                 )
+    test_cli_parser = subparsers.add_parser(
+        'test-load-lat-cli',
+        help='Run load latency tests defined in the command line.'
+    )
+    test_cli_parser.add_argument('-N',
+                                 '--name',
+                                 type=str,
+                                 default='l2-load-latency',
+                                 help='Test name.',
+                                 )
+    test_cli_parser.add_argument('-i',
+                                 '--interfaces',
+                                 nargs='+',
+                                 default=['pnic'],
+                                 help='Test network interface type. ' +
+                                      'Can be pnic, brtap or macvtap.',
+                                 )
+    test_cli_parser.add_argument('-o',
+                                 '--outdir',
+                                 type=writable_dir,
+                                 default='./outputs',
+                                 help='Test output directory.',
+                                 )
+    test_cli_parser.add_argument('-L',
+                                 '--loadprog',
+                                 type=FileType('r'),
+                                 default='./moonprogs/l2-load-latency.lua',
+                                 help='Load generator program.',
+                                 )
+    test_cli_parser.add_argument('-R',
+                                 '--reflprog',
+                                 type=FileType('r'),
+                                 default='./moonprogs/reflector.lua',
+                                 help='Reflector program.',
+                                 )
+    test_cli_parser.add_argument('-r',
+                                 '--rates',
+                                 nargs='+',
+                                 default=[10000],
+                                 help='List of throughput rates.',
+                                 )
+    test_cli_parser.add_argument('-T',
+                                 '--threads',
+                                 nargs='+',
+                                 default=[1],
+                                 help='List of number of threads.',
+                                 )
+    test_cli_parser.add_argument('-u',
+                                 '--runtime',
+                                 type=int,
+                                 default=10,
+                                 help='Test runtime.',
+                                 )
+    test_cli_parser.add_argument('-e',
+                                 '--reps',
+                                 type=int,
+                                 default=1,
+                                 help='Number of repetitions.',
+                                 )
     # TODO maybe we want to alter test parameters directly via the arguments
 
     __do_nothing(ping_parser)
-    __do_nothing(run_guest_parser)
     __do_nothing(kill_guest_parser)
     # __do_nothing(test_pnic_parser)
     # __do_nothing(test_vnic_parser)
@@ -208,6 +291,36 @@ def parse_args(parser: ArgumentParser) -> Namespace:
         parser.print_usage(stderr)
         print(f'{argv[0]}: error: argument missing.', file=stderr)
         exit(1)
+
+    if args.command == 'run-load-lat-cli':
+        for interface in args.interfaces:
+            if interface not in ['pnic', 'brtap', 'macvtap']:
+                parser.print_usage(stderr)
+                print(f'{argv[0]}: error: invalid interface type. ' +
+                      'Must be one of: pnic, brtap, macvtap', file=stderr)
+                exit(1)
+        for rate in args.rates:
+            if rate < 1:
+                parser.print_usage(stderr)
+                print(f'{argv[0]}: error: invalid rate. Must be >= 1',
+                      file=stderr)
+                exit(1)
+        for thread in args.threads:
+            if thread < 1:
+                parser.print_usage(stderr)
+                print(f'{argv[0]}: error: invalid thread. Must be >= 1',
+                      file=stderr)
+                exit(1)
+        if args.runtime < 1:
+            parser.print_usage(stderr)
+            print(f'{argv[0]}: error: invalid runtime. Must be >= 1',
+                  file=stderr)
+            exit(1)
+        if args.reps < 1:
+            parser.print_usage(stderr)
+            print(f'{argv[0]}: error: invalid number of repetitions. ' +
+                  'Must be >= 1', file=stderr)
+            exit(1)
 
     return args
 
@@ -516,6 +629,44 @@ def kill_guest(args: Namespace, conf: ConfigParser) -> None:
 
     host.kill_guest()
     host.cleanup_network()
+
+
+def test_load_lat_file(args: Namespace, conf: ConfigParser) -> None:
+    """
+    Run the load latency tests defined in a test config file.
+
+    This a command function and is therefore called by execute_command().
+
+    Parameters
+    ----------
+    args : Namespace
+        The argparse namespace containing the parsed arguments.
+    conf : ConfigParser
+        The config parser.
+
+    Returns
+    -------
+    """
+    pass
+
+
+def test_load_lat_cli(args: Namespace, conf: ConfigParser) -> None:
+    """
+    Run the load latency tests defined in the command line.
+
+    This a command function and is therefore called by execute_command().
+
+    Parameters
+    ----------
+    args : Namespace
+        The argparse namespace containing the parsed arguments.
+    conf : ConfigParser
+        The config parser.
+
+    Returns
+    -------
+    """
+    pass
 
 
 def execute_command(args: Namespace, conf: ConfigParser) -> None:
