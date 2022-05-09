@@ -149,16 +149,16 @@ def setup_parser() -> ArgumentParser:
                                   )
     kill_guest_parser = subparsers.add_parser('kill-guest',
                                               help='Kill the guest VM.')
-    test_pnic_parser = subparsers.add_parser('test-pnic',
-                                             help='Test the physical NIC.')
-    test_vnic_parser = subparsers.add_parser('test-vnic',
-                                             help='Test the VirtIO device.')
+    # test_pnic_parser = subparsers.add_parser('test-pnic',
+    #                                          help='Test the physical NIC.')
+    # test_vnic_parser = subparsers.add_parser('test-vnic',
+    #                                          help='Test the VirtIO device.')
 
     __do_nothing(ping_parser)
     __do_nothing(run_guest_parser)
     __do_nothing(kill_guest_parser)
-    __do_nothing(test_pnic_parser)
-    __do_nothing(test_vnic_parser)
+    # __do_nothing(test_pnic_parser)
+    # __do_nothing(test_vnic_parser)
 
     # return the parser
     return parser
