@@ -222,7 +222,8 @@ class Server(ABC):
         tmux_new : Start a tmux session on the server.
         tmux_send_keys : Send keys to a tmux session on the server.
         """
-        self.exec(f'tmux kill-session -t {session_name}')
+        self.exec('tmux list-sessions | cut -d ":" -f 1 ' +
+                  f'| grep {session_name} | xargs tmux kill-session -t')
 
     def tmux_send_keys(self: 'Server', session_name: str, keys: str) -> None:
         """
