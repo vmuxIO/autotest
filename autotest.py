@@ -13,7 +13,8 @@ from sys import argv, stdin, stdout, stderr, modules
 from time import sleep
 from enum import Enum
 from os import (access, W_OK)
-from os.path import isdir
+from os.path import isdir, isfile, join as path_join
+
 
 # project imports
 from server import Server, Host, Guest, LoadGen
@@ -236,7 +237,7 @@ def setup_parser() -> ArgumentParser:
     test_cli_parser.add_argument('-u',
                                  '--runtime',
                                  type=int,
-                                 default=10,
+                                 default=60,
                                  help='Test runtime.',
                                  )
     test_cli_parser.add_argument('-e',
@@ -631,6 +632,181 @@ def kill_guest(args: Namespace, conf: ConfigParser) -> None:
     host.cleanup_network()
 
 
+def test_done(outdir: str, interface: str, rate: int,
+              nthreads: int, rep: int) -> bool:
+    """
+    Check if the test result is already available.
+
+    Parameters
+    ----------
+    interface : str
+        The interface to use.
+    rate : int
+        The rate to use.
+    nthreads : int
+        The number of threads to use.
+    rep : int
+        The iteration of the test.
+    outdir : str
+        The output directory.
+
+    Returns
+    -------
+    bool
+        True if the test result is already available.
+    """
+    infix = f'i{interface}_r{rate}_t{nthreads}_r{rep}'
+    output_file = path_join(outdir, f'output_{infix}.log')
+    histogram_file = path_join(outdir, f'histogram_{infix}.csv')
+
+    return isfile(output_file) and isfile(histogram_file)
+
+
+def test_load_latency(
+    name: str,
+    interfaces: list[str],
+    outdir: str,
+    loadprog: str,
+    reflprog: str,
+    rates: list[int],
+    threads: list[int],
+    runtime: int,
+    reps: int,
+    args: Namespace,
+    conf: ConfigParser
+) -> None:
+    """
+    Run the load latency tests.
+
+    Parameters
+    ----------
+    name : str
+        The name of the test.
+    interfaces : list[str]
+        The interfaces to use.
+    outdir : str
+        The output directory.
+    loadprog : str
+        The load program.
+    reflprog : str
+        The reflector program.
+    rates : list[int]
+        The rates to use.
+    threads : list[int]
+        The threads to use.
+    runtime : int
+        The runtime to use.
+    reps : int
+        The number of repetitions to use.
+
+    Returns
+    -------
+    """
+    info('Running test:')
+    info(f'  name      : {name}')
+    info(f'  interfaces: {interfaces}')
+    info(f'  outdir    : {outdir}')
+    info(f'  loadprog  : {loadprog}')
+    info(f'  reflprog  : {reflprog}')
+    info(f'  rates     : {rates}')
+    info(f'  threads   : {threads}')
+    info(f'  runtime   : {runtime}')
+    info(f'  reps      : {reps}')
+
+    # check which test results are still missing
+    tests_todo = {
+        interface: {
+            rate: {
+                nthreads: {
+                    rep: not test_done(outdir, interface, rate, nthreads, rep)
+                    for rep in range(int(reps))
+                }
+                for nthreads in threads
+            }
+            for rate in rates
+        }
+        for interface in interfaces
+    }
+
+    # check which interfaces are still needed
+    interfaces_needed = []
+    for interface in interfaces:
+        needed = False
+        for rate in rates:
+            for nthreads in threads:
+                needed = any(tests_todo[interface][rate][nthreads].values())
+                if needed:
+                    break
+            if needed:
+                break
+        if needed:
+            interfaces_needed.append(interface)
+    if not interfaces_needed:
+        return
+
+    # create server
+    host: Host
+    guest: Guest
+    loadgen: LoadGen
+    host, guest, loadgen = create_servers(conf).values()
+
+    # prepare loadgen
+    loadgen.bind_test_iface()
+    loadgen.setup_hugetlbfs()
+
+    # loop over needed interfaces
+    for interface in interfaces_needed:
+        # setup interface
+        dut: Server
+        if interface in ['brtap', 'macvtap']:
+            host.run_guest(interface)
+            dut = guest
+        else:
+            dut = host
+        dut.bind_test_iface()
+        dut.setup_hugetlbfs()
+
+        # run missing tests for interface one by one and download test results
+        # dut.stop_l2_reflector()
+        dut.start_l2_reflector()
+        for rate in rates:
+            for nthreads in threads:
+                for rep in range(int(reps)):
+                    if not tests_todo[interface][rate][nthreads][rep]:
+                        continue
+                    info(f'Running test: {interface} {rate} {nthreads} {rep}')
+                    # run test
+                    try:
+                        loadgen.run_l2_load_latency(rate, runtime)
+                        sleep(1.1*runtime)
+                    except Exception:
+                        continue
+                    # TODO stopping still fails when the tmux session
+                    # does not exist
+                    # loadgen.stop_l2_load_latency()
+
+                    # download results
+                    infix = f'i{interface}_r{rate}_t{nthreads}_r{rep}'
+                    output_file = path_join(outdir, f'output_{infix}.log')
+                    histogram_file = path_join(outdir,
+                                               f'histogram_{infix}.csv')
+                    loadgen.copy_from(
+                        path_join(loadgen.moongen_dir, 'output.log'),
+                        output_file
+                    )
+                    loadgen.copy_from(
+                        path_join(loadgen.moongen_dir, 'histogram.csv'),
+                        histogram_file
+                    )
+        dut.stop_l2_reflector()
+        # TODO try again when connection is lost
+
+        # teardown interface
+        if interface in ['brtap', 'macvtap']:
+            host.kill_guest()
+        host.cleanup_network()
+
+
 def test_load_lat_file(args: Namespace, conf: ConfigParser) -> None:
     """
     Run the load latency tests defined in a test config file.
@@ -647,7 +823,23 @@ def test_load_lat_file(args: Namespace, conf: ConfigParser) -> None:
     Returns
     -------
     """
-    pass
+    test_conf = ConfigParser()
+    test_conf.read(args.testconfig.name)
+
+    for section in test_conf.sections():
+        test_load_latency(
+            test_conf[section]['name'],
+            test_conf[section]['interfaces'].split(','),
+            test_conf[section]['outdir'],
+            test_conf[section]['loadprog'],
+            test_conf[section]['reflprog'],
+            test_conf[section]['rates'].split(','),
+            test_conf[section]['threads'].split(','),
+            test_conf[section]['runtime'],
+            test_conf[section]['reps'],
+            args,
+            conf
+        )
 
 
 def test_load_lat_cli(args: Namespace, conf: ConfigParser) -> None:
@@ -666,7 +858,19 @@ def test_load_lat_cli(args: Namespace, conf: ConfigParser) -> None:
     Returns
     -------
     """
-    pass
+    test_load_latency(
+        args.name,
+        args.interfaces,
+        args.outdir,
+        args.loadprog.name,
+        args.reflprog.name,
+        args.rates,
+        args.threads,
+        args.runtime,
+        args.reps,
+        args,
+        conf
+    )
 
 
 def execute_command(args: Namespace, conf: ConfigParser) -> None:

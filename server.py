@@ -271,7 +271,7 @@ class Server(ABC):
         copy : Copy a file from the server to the localhost.
         __copy_ssh : Copy a file from the server to the server over SSH.
         """
-        self.exec(f'cp {source} {destination}')
+        self.__exec_local(f'cp {source} {destination}')
 
     def __scp_to(self: 'Server', source: str, destination: str) -> None:
         """
@@ -296,7 +296,7 @@ class Server(ABC):
         __copy_local : Copy a file from the server to the server over SSH.
         __scp_from : Copy a file from the server to the server over SSH.
         """
-        self.exec(f'scp {source} {self.fqdn}:{destination}')
+        self.__exec_local(f'scp {source} {self.fqdn}:{destination}')
 
     def __scp_from(self: 'Server', source: str, destination: str) -> None:
         """
@@ -321,7 +321,7 @@ class Server(ABC):
         __copy_local : Copy a file from the server to the server over SSH.
         __scp_to : Copy a file from the server to the server over SSH.
         """
-        self.exec(f'scp {self.fqdn}:{source} {destination}')
+        self.__exec_local(f'scp {self.fqdn}:{source} {destination}')
 
     def copy_to(self: 'Server', source: str, destination: str) -> None:
         """
@@ -883,7 +883,12 @@ class LoadGen(Server):
         super().__init__(fqdn, test_iface, test_iface_addr, moongen_dir,
                          localhost)
 
-    def run_l2_load_latency(self: 'LoadGen', runtime: int = 60):
+    def run_l2_load_latency(self: 'LoadGen',
+                            rate: int = 10000,
+                            runtime: int = 60,
+                            histfile: str = 'histogram.csv',
+                            outfile: str = 'output.log'
+                            ):
         """
         Run the MoonGen L2 load latency test.
 
@@ -905,7 +910,9 @@ class LoadGen(Server):
         self.tmux_new('loadlatency', f'cd {self.moongen_dir}; ' +
                       f'sudo LD_PRELOAD={tbbmalloc_path} timeout {runtime} ' +
                       'build/MoonGen examples/l2-load-latency.lua ' +
-                      f'{self._test_iface_id} {self._test_iface_id}')
+                      f'-r {rate} -f {histfile} ' +
+                      f'{self._test_iface_id} {self._test_iface_id} '
+                      f'> {outfile}')
 
     def stop_l2_load_latency(self: 'Server'):
         """
