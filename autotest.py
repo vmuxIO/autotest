@@ -173,6 +173,19 @@ def setup_parser() -> ArgumentParser:
                                   )
     kill_guest_parser = subparsers.add_parser('kill-guest',
                                               help='Kill the guest VM.')
+    setup_network_parser = subparsers.add_parser('setup-network',
+                                                 help='''Just setup the network
+                                                 for the guest.''')
+    setup_network_parser.add_argument('-i',
+                                      '--interface',
+                                      type=str,
+                                      choices=['brtap', 'macvtap'],
+                                      default='brtap',
+                                      help='Test network interface type.',
+                                      )
+    teardown_network_parser = subparsers.add_parser('teardown-network',
+                                                    help='''Teardown the guest
+                                                    network.''')
     # test_pnic_parser = subparsers.add_parser('test-pnic',
     #                                          help='Test the physical NIC.')
     # test_vnic_parser = subparsers.add_parser('test-vnic',
@@ -250,6 +263,7 @@ def setup_parser() -> ArgumentParser:
 
     __do_nothing(ping_parser)
     __do_nothing(kill_guest_parser)
+    __do_nothing(teardown_network_parser)
     # __do_nothing(test_pnic_parser)
     # __do_nothing(test_vnic_parser)
 
@@ -629,6 +643,71 @@ def kill_guest(args: Namespace, conf: ConfigParser) -> None:
     host: Host = create_servers(conf, guest=False, loadgen=False)['host']
 
     host.kill_guest()
+    host.cleanup_network()
+
+
+def setup_network(args: Namespace, conf: ConfigParser) -> None:
+    """
+    Just setup the network for the guest.
+
+    This a command function and is therefore called by execute_command().
+
+    Parameters
+    ----------
+    args : Namespace
+        The argparse namespace containing the parsed arguments.
+    conf : ConfigParser
+        The config parser.
+
+    Returns
+    -------
+
+    See Also
+    --------
+    execute_command : Execute the command.
+
+    Example
+    -------
+    >>> run_guest(args, conf)
+    """
+    host: Host = create_servers(conf, guest=False, loadgen=False)['host']
+
+    try:
+        host.setup_admin_tap()
+        if args.interface == 'brtap':
+            host.setup_test_br_tap()
+        else:
+            host.setup_test_macvtap()
+    except Exception:
+        host.cleanup_network()
+
+
+def kill_guest(args: Namespace, conf: ConfigParser) -> None:
+    """
+    Just teardown the guest's network.
+
+    This a command function and is therefore called by execute_command().
+
+    Parameters
+    ----------
+    args : Namespace
+        The argparse namespace containing the parsed arguments.
+    conf : ConfigParser
+        The config parser.
+
+    Returns
+    -------
+
+    See Also
+    --------
+    execute_command : Execute the command.
+
+    Example
+    -------
+    >>> kill_guest(args, conf)
+    """
+    host: Host = create_servers(conf, guest=False, loadgen=False)['host']
+
     host.cleanup_network()
 
 
