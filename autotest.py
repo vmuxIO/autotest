@@ -592,11 +592,11 @@ def run_guest(args: Namespace, conf: ConfigParser) -> None:
 
     try:
         host.setup_admin_tap()
-        if args.net_type == 'brtap':
+        if args.interface == 'brtap':
             host.setup_test_br_tap()
         else:
             host.setup_test_macvtap()
-        host.run_guest(args.net_type)
+        host.run_guest(args.interface)
     except Exception:
         host.kill_guest()
         host.cleanup_network()
