@@ -682,7 +682,7 @@ def setup_network(args: Namespace, conf: ConfigParser) -> None:
         host.cleanup_network()
 
 
-def kill_guest(args: Namespace, conf: ConfigParser) -> None:
+def teardown_network(args: Namespace, conf: ConfigParser) -> None:
     """
     Just teardown the guest's network.
 
