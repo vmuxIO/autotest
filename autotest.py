@@ -178,6 +178,12 @@ def setup_parser() -> ArgumentParser:
                                   default='pc',
                                   help='Machine type of the guest',
                                   )
+    run_guest_parser.add_argument('-d',
+                                  '--debug',
+                                  action='store_true',
+                                  help='''Attach GDB to Qemu. The GDB server
+                                  will listen on port 1234.''',
+                                  )
     kill_guest_parser = subparsers.add_parser('kill-guest',
                                               help='Kill the guest VM.')
     setup_network_parser = subparsers.add_parser('setup-network',
@@ -617,7 +623,7 @@ def run_guest(args: Namespace, conf: ConfigParser) -> None:
             host.setup_test_br_tap()
         else:
             host.setup_test_macvtap()
-        host.run_guest(args.interface, args.machine)
+        host.run_guest(args.interface, args.machine, args.debug)
     except Exception:
         host.kill_guest()
         host.cleanup_network()

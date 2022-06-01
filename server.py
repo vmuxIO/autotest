@@ -698,7 +698,11 @@ class Host(Server):
         """
         self.exec('sudo ip link delete macvtap1')
 
-    def run_guest(self: 'Host', net_type: str, machine_type: str) -> None:
+    def run_guest(self: 'Host',
+                  net_type: str,
+                  machine_type: str,
+                  debug_qemu: bool = False
+                  ) -> None:
         # TODO this function should get a Guest object as argument
         """
         Run a guest VM.
@@ -709,6 +713,9 @@ class Host(Server):
             Test interface network type
         machine_type : str
             Guest machine type
+        debug_qemu : bool
+            True if you want to attach GDB to Qemu. The GDB server will
+            be bound to port 1234.
 
         Returns
         -------
@@ -730,6 +737,7 @@ class Host(Server):
         )
         self.tmux_new(
             'qemu',
+            ('gdbserver 0.0.0.0:1234 ' if debug_qemu else '') +
             'qemu-system-x86_64' +
             f' -machine {machine_type}' +
             ' -cpu host' +
