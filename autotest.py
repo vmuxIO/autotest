@@ -171,6 +171,13 @@ def setup_parser() -> ArgumentParser:
                                   default='brtap',
                                   help='Test network interface type.',
                                   )
+    run_guest_parser.add_argument('-m',
+                                  '--machine',
+                                  type=str,
+                                  choices=['pc', 'microvm'],
+                                  default='pc',
+                                  help='Machine type of the guest',
+                                  )
     kill_guest_parser = subparsers.add_parser('kill-guest',
                                               help='Kill the guest VM.')
     setup_network_parser = subparsers.add_parser('setup-network',
@@ -610,7 +617,7 @@ def run_guest(args: Namespace, conf: ConfigParser) -> None:
             host.setup_test_br_tap()
         else:
             host.setup_test_macvtap()
-        host.run_guest(args.interface)
+        host.run_guest(args.interface, args.machine)
     except Exception:
         host.kill_guest()
         host.cleanup_network()

@@ -698,13 +698,17 @@ class Host(Server):
         """
         self.exec('sudo ip link delete macvtap1')
 
-    def run_guest(self: 'Host', net_type: str) -> None:
+    def run_guest(self: 'Host', net_type: str, machine_type: str) -> None:
         # TODO this function should get a Guest object as argument
         """
         Run a guest VM.
 
         Parameters
         ----------
+        net_type : str
+            Test interface network type
+        machine_type : str
+            Guest machine type
 
         Returns
         -------
@@ -712,29 +716,35 @@ class Host(Server):
         # TODO this command should be build by the Guest object
         # it should take all the settings from the config file
         # and compile them.
+        dev_type = 'pci' if machine_type == 'pc' else 'device'
         test_net_config = (
             ' -netdev tap,vhost=on,id=admin1,ifname=tap1,script=no,' +
             'downscript=no,queues=4' +
-            ' -device virtio-net-pci,netdev=admin1,mac=52:54:00:fa:00:60,mq=on'
+            f' -device virtio-net-{dev_type},netdev=admin1,' +
+            'mac=52:54:00:fa:00:60,mq=on'
         ) if net_type == 'brtap' else (
             ' -netdev tap,vhost=on,id=admin1,fd=3 3<>/dev/tap$(cat ' +
             '/sys/class/net/macvtap1/ifindex) ' +
-            ' -device virtio-net-pci,netdev=admin1,mac=$(cat ' +
+            f' -device virtio-net-{dev_type},netdev=admin1,mac=$(cat ' +
             '/sys/class/net/macvtap1/address)'
         )
         self.tmux_new(
             'qemu',
             'qemu-system-x86_64' +
+            f' -machine {machine_type}' +
             ' -cpu host' +
             ' -smp 4' +
             ' -m 4096' +
             ' -enable-kvm' +
-            ' -drive format=raw,file=/dev/ssd/vm_test,if=virtio,cache=none' +
+            ' -drive id=root,format=raw,file=/dev/ssd/vm_test,if=none,' +
+            'cache=none' +
+            f' -device virtio-blk-{dev_type},drive=root' +
             ' -cdrom /home/networkadmin/images/test_init.iso' +
             ' -serial stdio' +
             ' -netdev tap,vhost=on,id=admin0,ifname=tap0,script=no,' +
             'downscript=no' +
-            ' -device virtio-net-pci,netdev=admin0,mac=52:54:00:fa:00:5f' +
+            f' -device virtio-net-{dev_type},netdev=admin0,' +
+            'mac=52:54:00:fa:00:5f' +
             test_net_config
             )
 
