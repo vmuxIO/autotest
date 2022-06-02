@@ -154,14 +154,20 @@ def setup_parser() -> ArgumentParser:
 
     subparsers = parser.add_subparsers(help='commands', dest='command')
 
-    ping_parser = subparsers.add_parser('ping',
-                                        help='''Ping all servers.''')
+    ping_parser = subparsers.add_parser(
+        'ping',
+        formatter_class=ArgumentDefaultsHelpFormatter,
+        help='''Ping all servers.'''
+    )
     # TODO a status command would be cool. It should tell us, which nodes
     # are running and how the device status is maybe
     # TODO note this is just temporary, we will have more genernic commands
     # later
-    run_guest_parser = subparsers.add_parser('run-guest',
-                                             help='Run the guest VM.')
+    run_guest_parser = subparsers.add_parser(
+        'run-guest',
+        formatter_class=ArgumentDefaultsHelpFormatter,
+        help='Run the guest VM.'
+    )
     run_guest_parser.add_argument('-i',
                                   '--interface',
                                   type=str,
@@ -182,11 +188,17 @@ def setup_parser() -> ArgumentParser:
                                   help='''Attach GDB to Qemu. The GDB server
                                   will listen on port 1234.''',
                                   )
-    kill_guest_parser = subparsers.add_parser('kill-guest',
-                                              help='Kill the guest VM.')
-    setup_network_parser = subparsers.add_parser('setup-network',
-                                                 help='''Just setup the network
-                                                 for the guest.''')
+    kill_guest_parser = subparsers.add_parser(
+        'kill-guest',
+        formatter_class=ArgumentDefaultsHelpFormatter,
+        help='Kill the guest VM.'
+    )
+    setup_network_parser = subparsers.add_parser(
+        'setup-network',
+        formatter_class=ArgumentDefaultsHelpFormatter,
+        help='''Just setup the network
+        for the guest.'''
+    )
     setup_network_parser.add_argument('-i',
                                       '--interface',
                                       type=str,
@@ -194,15 +206,25 @@ def setup_parser() -> ArgumentParser:
                                       default='brtap',
                                       help='Test network interface type.',
                                       )
-    teardown_network_parser = subparsers.add_parser('teardown-network',
-                                                    help='''Teardown the guest
-                                                    network.''')
-    # test_pnic_parser = subparsers.add_parser('test-pnic',
-    #                                          help='Test the physical NIC.')
-    # test_vnic_parser = subparsers.add_parser('test-vnic',
-    #                                          help='Test the VirtIO device.')
+    teardown_network_parser = subparsers.add_parser(
+        'teardown-network',
+        formatter_class=ArgumentDefaultsHelpFormatter,
+        help='''Teardown the guest
+        network.'''
+    )
+    # test_pnic_parser = subparsers.add_parser(
+    #     'test-pnic',
+    #     formatter_class=ArgumentDefaultsHelpFormatter,
+    #     help='Test the physical NIC.'
+    # )
+    # test_vnic_parser = subparsers.add_parser(
+    #     'test-vnic',
+    #     formatter_class=ArgumentDefaultsHelpFormatter,
+    #     help='Test the VirtIO device.'
+    # )
     test_file_parser = subparsers.add_parser(
         'test-load-lat-file',
+        formatter_class=ArgumentDefaultsHelpFormatter,
         help='Run load latency tests defined in a test config file.'
     )
     test_file_parser.add_argument('-t',
@@ -213,6 +235,7 @@ def setup_parser() -> ArgumentParser:
                                   )
     test_cli_parser = subparsers.add_parser(
         'test-load-lat-cli',
+        formatter_class=ArgumentDefaultsHelpFormatter,
         help='Run load latency tests defined in the command line.'
     )
     test_cli_parser.add_argument('-N',
