@@ -6,12 +6,10 @@ from argparse import (ArgumentParser, ArgumentDefaultsHelpFormatter, Namespace,
                       FileType, ArgumentTypeError)
 from argcomplete import autocomplete
 from configparser import ConfigParser
-from logging import (error, info, warn, debug, basicConfig,
+from logging import (info, debug, basicConfig,
                      DEBUG, INFO, WARN, ERROR)
-from dataclasses import dataclass
-from sys import argv, stdin, stdout, stderr, modules
+from sys import argv, stderr, modules
 from time import sleep
-from enum import Enum
 from os import (access, W_OK)
 from os.path import isdir, isfile, join as path_join
 
@@ -208,11 +206,11 @@ def setup_parser() -> ArgumentParser:
         help='Run load latency tests defined in a test config file.'
     )
     test_file_parser.add_argument('-t',
-                                 '--testconfig',
-                                 default='./tests.cfg',
-                                 type=FileType('r'),
-                                 help='Test configuration file path',
-                                 )
+                                  '--testconfig',
+                                  default='./tests.cfg',
+                                  type=FileType('r'),
+                                  help='Test configuration file path',
+                                  )
     test_cli_parser = subparsers.add_parser(
         'test-load-lat-cli',
         help='Run load latency tests defined in the command line.'

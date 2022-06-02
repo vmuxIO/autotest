@@ -1,8 +1,7 @@
 from dataclasses import dataclass, field
 from subprocess import check_output, CalledProcessError
 from socket import getfqdn
-from logging import (error, info, warn, debug, basicConfig,
-                     DEBUG, INFO, WARN, ERROR)
+from logging import debug
 from abc import ABC
 
 
