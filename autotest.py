@@ -188,6 +188,12 @@ def setup_parser() -> ArgumentParser:
                                   help='''Attach GDB to Qemu. The GDB server
                                   will listen on port 1234.''',
                                   )
+    run_guest_parser.add_argument('-I',
+                                  '--ioregionfd',
+                                  action='store_true',
+                                  help='''Use the IORegionFD enhanced
+                                  virtio-net-device for the test interface.'''
+                                  )
     kill_guest_parser = subparsers.add_parser(
         'kill-guest',
         formatter_class=ArgumentDefaultsHelpFormatter,
@@ -644,7 +650,8 @@ def run_guest(args: Namespace, conf: ConfigParser) -> None:
             host.setup_test_br_tap()
         else:
             host.setup_test_macvtap()
-        host.run_guest(args.interface, args.machine, args.debug)
+        host.run_guest(args.interface, args.machine, args.debug,
+                       args.ioregionfd)
     except Exception:
         host.kill_guest()
         host.cleanup_network()

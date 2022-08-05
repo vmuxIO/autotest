@@ -700,7 +700,8 @@ class Host(Server):
     def run_guest(self: 'Host',
                   net_type: str,
                   machine_type: str,
-                  debug_qemu: bool = False
+                  debug_qemu: bool = False,
+                  use_ioregionfd: bool = False
                   ) -> None:
         # TODO this function should get a Guest object as argument
         """
@@ -715,6 +716,9 @@ class Host(Server):
         debug_qemu : bool
             True if you want to attach GDB to Qemu. The GDB server will
             be bound to port 1234.
+        use_ioregionfd : bool
+            True if you want to use the IORegionFD enhanced virtio_net_device
+            for the test interface.
 
         Returns
         -------
@@ -728,11 +732,13 @@ class Host(Server):
             'downscript=no,queues=4' +
             f' -device virtio-net-{dev_type},netdev=admin1,' +
             'mac=52:54:00:fa:00:60,mq=on'
+            (',use-ioregionfd=true' if use_ioregionfd else '')
         ) if net_type == 'brtap' else (
             ' -netdev tap,vhost=on,id=admin1,fd=3 3<>/dev/tap$(cat ' +
             '/sys/class/net/macvtap1/ifindex) ' +
             f' -device virtio-net-{dev_type},netdev=admin1,mac=$(cat ' +
             '/sys/class/net/macvtap1/address)'
+            (',use-ioregionfd=true' if use_ioregionfd else '')
         )
         self.tmux_new(
             'qemu',
