@@ -755,6 +755,7 @@ class Host(Server):
             f' -device virtio-blk-{dev_type},drive=root' +
             ' -cdrom /home/networkadmin/images/test_init.iso' +
             ' -serial stdio' +
+            ' -monitor tcp:127.0.0.1:2345,server,nowait' +
             ' -netdev tap,vhost=on,id=admin0,ifname=tap0,script=no,' +
             'downscript=no' +
             f' -device virtio-net-{dev_type},id=admif,netdev=admin0,' +
