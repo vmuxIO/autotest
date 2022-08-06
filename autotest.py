@@ -949,12 +949,12 @@ def test_load_lat_file(args: Namespace, conf: ConfigParser) -> None:
     for section in test_conf.sections():
         test_load_latency(
             test_conf[section]['name'],
-            test_conf[section]['interfaces'].split(','),
+            [i.strip() for i in test_conf[section]['interfaces'].split(',')],
             test_conf[section]['outdir'],
             test_conf[section]['loadprog'],
             test_conf[section]['reflprog'],
-            test_conf[section]['rates'].split(','),
-            test_conf[section]['threads'].split(','),
+            [r.strip() for r in test_conf[section]['rates'].split(',')],
+            [t.strip() for t in test_conf[section]['threads'].split(',')],
             test_conf[section]['runtime'],
             test_conf[section]['reps'],
             args,
