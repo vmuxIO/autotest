@@ -1,2 +1,2 @@
 # autotest
-Automated performance testing for Qemu's virtio-net-pci device using the MoonGen packet generator.
+Automated performance testing for Qemu's virtio-net-device using the MoonGen packet generator.
