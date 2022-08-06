@@ -841,7 +841,7 @@ def test_load_latency(
                     rep: not test_done(outdir, interface, rate, nthreads, rep)
                     for rep in range(int(reps))
                 }
-                for nthreads in threads
+                for nthreads in (threads if interface != 'macvtap' else [1])
             }
             for rate in rates
         }
