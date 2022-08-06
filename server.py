@@ -750,7 +750,9 @@ class Host(Server):
             ' -smp 4' +
             ' -m 4096' +
             ' -enable-kvm' +
-            ' -drive id=root,format=raw,file=/dev/ssd/vm_test,if=none,' +
+            # TODO the disk needs to be dynamically set by the config
+            # we might also wanna include commands ot make the image
+            ' -drive id=root,format=raw,file=/dev/ssd/vm_guest,if=none,' +
             'cache=none' +
             f' -device virtio-blk-{dev_type},drive=root' +
             ' -cdrom /home/networkadmin/images/test_init.iso' +
