@@ -754,8 +754,8 @@ class Host(Server):
             # we might also wanna include commands ot make the image
             ' -drive id=root,format=raw,file=/dev/ssd/vm_guest,if=none,' +
             'cache=none' +
-            f' -device virtio-blk-{dev_type},drive=root' +
-            ' -cdrom /home/networkadmin/images/test_init.iso' +
+            f' -device virtio-blk-{dev_type},id=rootdisk,drive=root' +
+            ' -cdrom /home/networkadmin/images/guest_init.iso' +
             ' -serial stdio' +
             ' -monitor tcp:127.0.0.1:2345,server,nowait' +
             ' -netdev tap,vhost=on,id=admin0,ifname=tap0,script=no,' +
