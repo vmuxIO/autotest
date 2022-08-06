@@ -730,14 +730,15 @@ class Host(Server):
         test_net_config = (
             ' -netdev tap,vhost=on,id=admin1,ifname=tap1,script=no,' +
             'downscript=no,queues=4' +
-            f' -device virtio-net-{dev_type},netdev=admin1,' +
-            'mac=52:54:00:fa:00:60,mq=on'
+            f' -device virtio-net-{dev_type},id=testif,netdev=admin1,' +
+            'mac=52:54:00:fa:00:60,mq=on' +
             (',use-ioregionfd=true' if use_ioregionfd else '')
         ) if net_type == 'brtap' else (
             ' -netdev tap,vhost=on,id=admin1,fd=3 3<>/dev/tap$(cat ' +
             '/sys/class/net/macvtap1/ifindex) ' +
-            f' -device virtio-net-{dev_type},netdev=admin1,mac=$(cat ' +
-            '/sys/class/net/macvtap1/address)'
+            f' -device virtio-net-{dev_type},id=testif,' +
+            'netdev=admin1,mac=$(cat ' +
+            '/sys/class/net/macvtap1/address)' +
             (',use-ioregionfd=true' if use_ioregionfd else '')
         )
         self.tmux_new(
@@ -756,7 +757,7 @@ class Host(Server):
             ' -serial stdio' +
             ' -netdev tap,vhost=on,id=admin0,ifname=tap0,script=no,' +
             'downscript=no' +
-            f' -device virtio-net-{dev_type},netdev=admin0,' +
+            f' -device virtio-net-{dev_type},id=admif,netdev=admin0,' +
             'mac=52:54:00:fa:00:5f' +
             test_net_config
             )
