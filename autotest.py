@@ -299,6 +299,13 @@ def setup_parser() -> ArgumentParser:
                                  default=1,
                                  help='Number of repetitions.',
                                  )
+    test_cli_parser.add_argument('-a',
+                                 '--accumulate',
+                                 action='store_true',
+                                 default=False,
+                                 help='Accumulate the histograms of the ' +
+                                      'repetitions.',
+                                 )
     # TODO maybe we want to alter test parameters directly via the arguments
 
     __do_nothing(ping_parser)
@@ -792,6 +799,7 @@ def test_load_latency(
     threads: list[int],
     runtime: int,
     reps: int,
+    accumulate: bool,
     args: Namespace,
     conf: ConfigParser
 ) -> None:
@@ -818,6 +826,8 @@ def test_load_latency(
         The runtime to use.
     reps : int
         The number of repetitions to use.
+    accumulate : bool
+        Whether to accumulate the histogram of multiple repetitions.
 
     Returns
     -------
@@ -832,6 +842,7 @@ def test_load_latency(
     info(f'  threads   : {threads}')
     info(f'  runtime   : {runtime}')
     info(f'  reps      : {reps}')
+    info(f'  accumulate: {accumulate}')
 
     # check which test results are still missing
     tests_todo = {
@@ -957,6 +968,7 @@ def test_load_lat_file(args: Namespace, conf: ConfigParser) -> None:
             [t.strip() for t in test_conf[section]['threads'].split(',')],
             test_conf[section]['runtime'],
             test_conf[section]['reps'],
+            test_conf[section]['accumulate'],
             args,
             conf
         )
@@ -988,6 +1000,7 @@ def test_load_lat_cli(args: Namespace, conf: ConfigParser) -> None:
         args.threads,
         args.runtime,
         args.reps,
+        args.accumulate,
         args,
         conf
     )
