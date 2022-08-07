@@ -759,6 +759,80 @@ def teardown_network(args: Namespace, conf: ConfigParser) -> None:
     host.cleanup_network()
 
 
+def test_infix(interface: str, rate: int, nthreads: int, rep: int) -> str:
+    """
+    Create a test infix for the test.
+
+    Parameters
+    ----------
+    interface : str
+        The interface to test.
+    rate : int
+        The rate to test.
+    nthreads : int
+        The number of threads to test.
+    rep : int
+        The number of repetitions to test.
+    """
+    return f'{interface}_{rate}_{nthreads}_{rep}'
+
+
+def output_filepath(outdir: str, interface: str, rate: int, nthreads: int,
+                    rep: int) -> str:
+    """
+    Create the output filename.
+
+    Parameters
+    ----------
+    outdir : str
+        The output directory.
+    interface : str
+        The interface name.
+    rate : int
+        The rate in Mbit/s.
+    nthreads : int
+        The number of threads.
+    rep : int
+        The repetition number.
+
+    Returns
+    -------
+    str
+        The output filename.
+    """
+    infix = test_infix(interface, rate, nthreads, rep)
+    filename = f'output_{infix}.log'
+    return path_join(outdir, filename)
+
+
+def histogram_filepath(outdir: str, interface: str, rate: int, nthreads: int,
+                       rep: int) -> str:
+    """
+    Create the histogram filename.
+
+    Parameters
+    ----------
+    outdir : str
+        The output directory.
+    interface : str
+        The interface name.
+    rate : int
+        The rate in Mbit/s.
+    nthreads : int
+        The number of threads.
+    rep : int
+        The repetition number.
+
+    Returns
+    -------
+    str
+        The histogram filename.
+    """
+    infix = test_infix(interface, rate, nthreads, rep)
+    filename = f'histogram_{infix}.csv'
+    return path_join(outdir, filename)
+
+
 def test_done(outdir: str, interface: str, rate: int,
               nthreads: int, rep: int) -> bool:
     """
@@ -782,9 +856,9 @@ def test_done(outdir: str, interface: str, rate: int,
     bool
         True if the test result is already available.
     """
-    infix = f'i{interface}_r{rate}_t{nthreads}_r{rep}'
-    output_file = path_join(outdir, f'output_{infix}.log')
-    histogram_file = path_join(outdir, f'histogram_{infix}.csv')
+    output_file = output_filepath(outdir, interface, rate, nthreads, rep)
+    histogram_file = histogram_filepath(outdir, interface, rate, nthreads,
+                                        rep)
 
     return isfile(output_file) and isfile(histogram_file)
 
@@ -917,10 +991,10 @@ def test_load_latency(
                     # loadgen.stop_l2_load_latency()
 
                     # download results
-                    infix = f'i{interface}_r{rate}_t{nthreads}_r{rep}'
-                    output_file = path_join(outdir, f'output_{infix}.log')
-                    histogram_file = path_join(outdir,
-                                               f'histogram_{infix}.csv')
+                    output_file = output_filepath(outdir, interface, rate,
+                                                  nthreads, rep)
+                    histogram_file = histogram_filepath(outdir, interface,
+                                                        rate, nthreads, rep)
                     loadgen.copy_from(
                         path_join(loadgen.moongen_dir, 'output.log'),
                         output_file
