@@ -863,6 +863,80 @@ def test_done(outdir: str, interface: str, rate: int,
     return isfile(output_file) and isfile(histogram_file)
 
 
+def accumulate_histograms(outdir: str, interface: str, rate: int,
+                          nthreads: int, reps: int) -> None:
+    """
+    Accumulate the histograms for all repetitions.
+
+    Parameters
+    ----------
+    outdir : str
+        The output directory.
+    interface : str
+        The interface to use.
+    rate : int
+        The rate to use.
+    nthreads : int
+        The number of threads to use.
+    reps : int
+        The number of repetitions.
+    """
+    info("Accumulating histograms.")
+    assert reps > 0, 'Reps must be greater than 0'
+
+    acc_hist_filename = f'acc_histogram_i{interface}_r{rate}_t{nthreads}.csv'
+    acc_hist_filepath = path_join(outdir, acc_hist_filename)
+    if isfile(acc_hist_filepath):
+        debug(f'Skipping accumulation: {interface} {rate} {nthreads}' +
+              ', already done')
+        return
+
+    histogram = {}
+    for rep in range(reps):
+        assert test_done(outdir, interface, rate, nthreads, rep), \
+            'Test not done yet'
+
+        with open(histogram_filepath(outdir, interface, rate, nthreads, rep)
+                  ) as f:
+            for line in f:
+                if line.startswith('#'):
+                    continue
+                key, value = [int(n) for n in line.split(',')]
+                if key not in histogram:
+                    histogram[key] = 0
+                histogram[key] += value
+
+    with open(acc_hist_filepath, 'w') as f:
+        for key, value in histogram.items():
+            f.write(f'{key},{value}\n')
+
+
+def accumulate_all_histograms(
+    outdir: str,
+    test_done: dict[str, dict[int, dict[int, bool]]]
+) -> None:
+    """
+    Accumulate the histograms for all repetitions.
+
+    Parameters
+    ----------
+    outdir : str
+        The output directory.
+    test_done : dict[str, dict[int, dict[int, bool]]]
+        The test done dictionary.
+    """
+    for interface in test_done:
+        for rate in test_done[interface]:
+            for nthreads in test_done[interface][rate]:
+                accumulate_histograms(
+                    outdir,
+                    interface,
+                    rate,
+                    nthreads,
+                    max(test_done[interface][rate][nthreads].keys()) + 1
+                )
+
+
 def test_load_latency(
     name: str,
     interfaces: list[str],
@@ -947,6 +1021,10 @@ def test_load_latency(
         if needed:
             interfaces_needed.append(interface)
     if not interfaces_needed:
+        info('All tests are already done.')
+        # accumulate the histogram of multiple repetitions here
+        if accumulate:
+            accumulate_all_histograms(outdir, tests_todo)
         return
 
     # create server
@@ -1016,6 +1094,10 @@ def test_load_latency(
         if interface in ['brtap', 'macvtap']:
             host.kill_guest()
         host.cleanup_network()
+
+        # accumulate the histogram of multiple repetitions here
+        if accumulate:
+            accumulate_all_histograms(outdir, tests_todo)
 
 
 def test_load_lat_file(args: Namespace, conf: ConfigParser) -> None:
