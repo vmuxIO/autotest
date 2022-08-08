@@ -663,7 +663,10 @@ def run_guest(args: Namespace, conf: ConfigParser) -> None:
             host.setup_test_br_tap()
         else:
             host.setup_test_macvtap()
-        host.run_guest(args.interface, args.machine, args.debug,
+
+        disk = args.disk if args.disk else conf['guest']['root_disk_file']
+
+        host.run_guest(args.interface, args.machine, disk, args.debug,
                        args.ioregionfd)
     except Exception:
         host.kill_guest()
@@ -1049,7 +1052,9 @@ def test_load_latency(
         dut: Server
         mac: str
         if interface in ['brtap', 'macvtap']:
-            host.run_guest(net_type=interface, machine_type='pc')
+            disk = args.disk if args.disk else conf['guest']['root_disk_file']
+            host.run_guest(net_type=interface, machine_type='pc',
+                           root_disk=disk)
             dut = guest
             mac = '52:54:00:fa:00:60'
         else:
