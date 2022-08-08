@@ -6,7 +6,10 @@ local stats  = require "stats"
 local hist   = require "histogram"
 
 local PKT_SIZE	= 60
-local ETH_DST	= "52:54:00:fa:00:60" -- "11:12:13:14:15:16"
+-- local ETH_DST	= "52:54:00:fa:00:60"
+-- local ETH_DST	= "64:9d:99:b1:0b:59"
+-- local ETH_DST	= "3e:30:b3:51:a3:76"
+-- local ETH_DST    = "4e:6d:83:f0:73:84"
 
 local function getRstFile(...)
 	local args = { ... }
@@ -21,32 +24,27 @@ end
 
 function configure(parser)
 	parser:description("Generates bidirectional CBR traffic with hardware rate control and measure latencies.")
-	parser:argument("dev1", "Device to transmit/receive from."):convert(tonumber)
-	parser:argument("dev2", "Device to transmit/receive from."):convert(tonumber)
+	parser:argument("dev", "Device to transmit/receive from."):convert(tonumber)
+	parser:argument("mac", "MAC address of the destination device.")
 	parser:option("-r --rate", "Transmit rate in Mbit/s."):default(10000):convert(tonumber)
 	parser:option("-f --file", "Filename of the latency histogram."):default("histogram.csv")
 end
 
 function master(args)
-	local dev1 = device.config({port = args.dev1, rxQueues = 2, txQueues = 2})
-	local dev2 = device.config({port = args.dev2, rxQueues = 2, txQueues = 2})
+	local dev = device.config({port = args.dev, rxQueues = 2, txQueues = 2})
 	device.waitForLinks()
-	dev1:getTxQueue(0):setRate(args.rate)
-	dev2:getTxQueue(0):setRate(args.rate)
-	mg.startTask("loadSlave", dev1:getTxQueue(0))
-	if dev1 ~= dev2 then
-		mg.startTask("loadSlave", dev2:getTxQueue(0))
-	end
-	stats.startStatsTask{dev1, dev2}
-	mg.startSharedTask("timerSlave", dev1:getTxQueue(1), dev2:getRxQueue(1), args.file)
+	dev:getTxQueue(0):setRate(args.rate)
+	mg.startTask("loadSlave", dev:getTxQueue(0), dev:getMac(true), args.mac)
+	stats.startStatsTask{dev}
+	mg.startSharedTask("timerSlave", dev:getTxQueue(1), dev:getRxQueue(1), args.mac, args.file)
 	mg.waitForTasks()
 end
 
-function loadSlave(queue)
+function loadSlave(queue, srcMac, dstMac)
 	local mem = memory.createMemPool(function(buf)
 		buf:getEthernetPacket():fill{
-			ethSrc = "64:9d:99:b1:0b:59", -- txDev,
-			ethDst = ETH_DST,
+			ethSrc = srcMac,
+			ethDst = dstMac,
 			ethType = 0x1234
 		}
 	end)
@@ -57,12 +55,12 @@ function loadSlave(queue)
 	end
 end
 
-function timerSlave(txQueue, rxQueue, histfile)
+function timerSlave(txQueue, rxQueue, dstMac, histfile)
 	local timestamper = ts:newTimestamper(txQueue, rxQueue)
 	local hist = hist:new()
 	mg.sleepMillis(1000) -- ensure that the load task is running
 	while mg.running() do
-		hist:update(timestamper:measureLatency(function(buf) buf:getEthernetPacket().eth.dst:setString(ETH_DST) end))
+		hist:update(timestamper:measureLatency(function(buf) buf:getEthernetPacket().eth.dst:setString(dstMac) end))
 	end
 	hist:print()
 	hist:save(histfile)

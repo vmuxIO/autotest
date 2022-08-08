@@ -911,6 +911,7 @@ class LoadGen(Server):
                          localhost)
 
     def run_l2_load_latency(self: 'LoadGen',
+                            mac: str,
                             rate: int = 10000,
                             runtime: int = 60,
                             histfile: str = 'histogram.csv',
@@ -921,6 +922,16 @@ class LoadGen(Server):
 
         Parameters
         ----------
+        mac : str
+            The MAC address of the destination device.
+        rate : int
+            The rate of the test in Mbps.
+        runtime : int
+            The runtime of the test in seconds.
+        histfile : str
+            The path of the histogram file.
+        outfile : str
+            The path of the output file.
 
         Returns
         -------
@@ -938,8 +949,8 @@ class LoadGen(Server):
                       f'sudo LD_PRELOAD={tbbmalloc_path} timeout {runtime} ' +
                       'build/MoonGen examples/l2-load-latency.lua ' +
                       f'-r {rate} -f {histfile} ' +
-                      f'{self._test_iface_id} {self._test_iface_id} '
-                      f'> {outfile}')
+                      f'{self._test_iface_id} {mac} ' +
+                      f'2>&1 > {outfile}')
 
     def stop_l2_load_latency(self: 'Server'):
         """

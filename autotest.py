@@ -6,7 +6,7 @@ from argparse import (ArgumentParser, ArgumentDefaultsHelpFormatter, Namespace,
                       FileType, ArgumentTypeError)
 from argcomplete import autocomplete
 from configparser import ConfigParser
-from logging import (info, debug, basicConfig,
+from logging import (info, debug, error, basicConfig,
                      DEBUG, INFO, WARN, ERROR)
 from sys import argv, stderr, modules
 from time import sleep
@@ -298,6 +298,13 @@ def setup_parser() -> ArgumentParser:
                                  type=int,
                                  default=1,
                                  help='Number of repetitions.',
+                                 )
+    test_cli_parser.add_argument('-a',
+                                 '--accumulate',
+                                 action='store_true',
+                                 default=False,
+                                 help='Accumulate the histograms of the ' +
+                                      'repetitions.',
                                  )
     # TODO maybe we want to alter test parameters directly via the arguments
 
@@ -752,6 +759,80 @@ def teardown_network(args: Namespace, conf: ConfigParser) -> None:
     host.cleanup_network()
 
 
+def test_infix(interface: str, rate: int, nthreads: int, rep: int) -> str:
+    """
+    Create a test infix for the test.
+
+    Parameters
+    ----------
+    interface : str
+        The interface to test.
+    rate : int
+        The rate to test.
+    nthreads : int
+        The number of threads to test.
+    rep : int
+        The number of repetitions to test.
+    """
+    return f'{interface}_r{rate}_t{nthreads}_{rep}'
+
+
+def output_filepath(outdir: str, interface: str, rate: int, nthreads: int,
+                    rep: int) -> str:
+    """
+    Create the output filename.
+
+    Parameters
+    ----------
+    outdir : str
+        The output directory.
+    interface : str
+        The interface name.
+    rate : int
+        The rate in Mbit/s.
+    nthreads : int
+        The number of threads.
+    rep : int
+        The repetition number.
+
+    Returns
+    -------
+    str
+        The output filename.
+    """
+    infix = test_infix(interface, rate, nthreads, rep)
+    filename = f'output_{infix}.log'
+    return path_join(outdir, filename)
+
+
+def histogram_filepath(outdir: str, interface: str, rate: int, nthreads: int,
+                       rep: int) -> str:
+    """
+    Create the histogram filename.
+
+    Parameters
+    ----------
+    outdir : str
+        The output directory.
+    interface : str
+        The interface name.
+    rate : int
+        The rate in Mbit/s.
+    nthreads : int
+        The number of threads.
+    rep : int
+        The repetition number.
+
+    Returns
+    -------
+    str
+        The histogram filename.
+    """
+    infix = test_infix(interface, rate, nthreads, rep)
+    filename = f'histogram_{infix}.csv'
+    return path_join(outdir, filename)
+
+
 def test_done(outdir: str, interface: str, rate: int,
               nthreads: int, rep: int) -> bool:
     """
@@ -775,11 +856,85 @@ def test_done(outdir: str, interface: str, rate: int,
     bool
         True if the test result is already available.
     """
-    infix = f'i{interface}_r{rate}_t{nthreads}_r{rep}'
-    output_file = path_join(outdir, f'output_{infix}.log')
-    histogram_file = path_join(outdir, f'histogram_{infix}.csv')
+    output_file = output_filepath(outdir, interface, rate, nthreads, rep)
+    histogram_file = histogram_filepath(outdir, interface, rate, nthreads,
+                                        rep)
 
     return isfile(output_file) and isfile(histogram_file)
+
+
+def accumulate_histograms(outdir: str, interface: str, rate: int,
+                          nthreads: int, reps: int) -> None:
+    """
+    Accumulate the histograms for all repetitions.
+
+    Parameters
+    ----------
+    outdir : str
+        The output directory.
+    interface : str
+        The interface to use.
+    rate : int
+        The rate to use.
+    nthreads : int
+        The number of threads to use.
+    reps : int
+        The number of repetitions.
+    """
+    info("Accumulating histograms.")
+    assert reps > 0, 'Reps must be greater than 0'
+
+    acc_hist_filename = f'acc_histogram_i{interface}_r{rate}_t{nthreads}.csv'
+    acc_hist_filepath = path_join(outdir, acc_hist_filename)
+    if isfile(acc_hist_filepath):
+        debug(f'Skipping accumulation: {interface} {rate} {nthreads}' +
+              ', already done')
+        return
+
+    histogram = {}
+    for rep in range(reps):
+        assert test_done(outdir, interface, rate, nthreads, rep), \
+            'Test not done yet'
+
+        with open(histogram_filepath(outdir, interface, rate, nthreads, rep)
+                  ) as f:
+            for line in f:
+                if line.startswith('#'):
+                    continue
+                key, value = [int(n) for n in line.split(',')]
+                if key not in histogram:
+                    histogram[key] = 0
+                histogram[key] += value
+
+    with open(acc_hist_filepath, 'w') as f:
+        for key, value in histogram.items():
+            f.write(f'{key},{value}\n')
+
+
+def accumulate_all_histograms(
+    outdir: str,
+    test_done: dict[str, dict[int, dict[int, bool]]]
+) -> None:
+    """
+    Accumulate the histograms for all repetitions.
+
+    Parameters
+    ----------
+    outdir : str
+        The output directory.
+    test_done : dict[str, dict[int, dict[int, bool]]]
+        The test done dictionary.
+    """
+    for interface in test_done:
+        for rate in test_done[interface]:
+            for nthreads in test_done[interface][rate]:
+                accumulate_histograms(
+                    outdir,
+                    interface,
+                    rate,
+                    nthreads,
+                    max(test_done[interface][rate][nthreads].keys()) + 1
+                )
 
 
 def test_load_latency(
@@ -792,6 +947,7 @@ def test_load_latency(
     threads: list[int],
     runtime: int,
     reps: int,
+    accumulate: bool,
     args: Namespace,
     conf: ConfigParser
 ) -> None:
@@ -818,6 +974,8 @@ def test_load_latency(
         The runtime to use.
     reps : int
         The number of repetitions to use.
+    accumulate : bool
+        Whether to accumulate the histogram of multiple repetitions.
 
     Returns
     -------
@@ -832,6 +990,7 @@ def test_load_latency(
     info(f'  threads   : {threads}')
     info(f'  runtime   : {runtime}')
     info(f'  reps      : {reps}')
+    info(f'  accumulate: {accumulate}')
 
     # check which test results are still missing
     tests_todo = {
@@ -839,7 +998,7 @@ def test_load_latency(
             rate: {
                 nthreads: {
                     rep: not test_done(outdir, interface, rate, nthreads, rep)
-                    for rep in range(int(reps))
+                    for rep in range(reps)
                 }
                 for nthreads in (threads if interface != 'macvtap' else [1])
             }
@@ -862,6 +1021,10 @@ def test_load_latency(
         if needed:
             interfaces_needed.append(interface)
     if not interfaces_needed:
+        info('All tests are already done.')
+        # accumulate the histogram of multiple repetitions here
+        if accumulate:
+            accumulate_all_histograms(outdir, tests_todo)
         return
 
     # create server
@@ -878,46 +1041,54 @@ def test_load_latency(
     for interface in interfaces_needed:
         # setup interface
         dut: Server
+        mac: str
         if interface in ['brtap', 'macvtap']:
-            host.run_guest(interface)
+            host.run_guest(net_type=interface, machine_type='pc')
             dut = guest
+            mac = '52:54:00:fa:00:60'
         else:
             dut = host
+            mac = '64:9d:99:b1:0b:59'
         dut.bind_test_iface()
         dut.setup_hugetlbfs()
 
         # run missing tests for interface one by one and download test results
         # dut.stop_l2_reflector()
         dut.start_l2_reflector()
+        sleep(5)
         for rate in rates:
             for nthreads in threads:
-                for rep in range(int(reps)):
+                for rep in range(reps):
                     if not tests_todo[interface][rate][nthreads][rep]:
+                        debug(f'Skipping test: {interface} {rate} {nthreads}' +
+                              f' {rep}, already done')
                         continue
                     info(f'Running test: {interface} {rate} {nthreads} {rep}')
                     # run test
+                    remote_output_file = path_join(loadgen.moongen_dir,
+                                                   'output.log')
+                    remote_histogram_file = path_join(loadgen.moongen_dir,
+                                                      'histogram.csv')
                     try:
-                        loadgen.run_l2_load_latency(rate, runtime)
+                        loadgen.exec(f'rm -f {remote_output_file} ' +
+                                     f'{remote_histogram_file}')
+                        loadgen.run_l2_load_latency(mac, rate, runtime)
                         sleep(1.1*runtime)
-                    except Exception:
+                    except Exception as e:
+                        error(f'Failed to run test: {interface} {rate} ' +
+                              f'{nthreads} {rep} due to exception: {e}')
                         continue
                     # TODO stopping still fails when the tmux session
                     # does not exist
                     # loadgen.stop_l2_load_latency()
 
                     # download results
-                    infix = f'i{interface}_r{rate}_t{nthreads}_r{rep}'
-                    output_file = path_join(outdir, f'output_{infix}.log')
-                    histogram_file = path_join(outdir,
-                                               f'histogram_{infix}.csv')
-                    loadgen.copy_from(
-                        path_join(loadgen.moongen_dir, 'output.log'),
-                        output_file
-                    )
-                    loadgen.copy_from(
-                        path_join(loadgen.moongen_dir, 'histogram.csv'),
-                        histogram_file
-                    )
+                    output_file = output_filepath(outdir, interface, rate,
+                                                  nthreads, rep)
+                    histogram_file = histogram_filepath(outdir, interface,
+                                                        rate, nthreads, rep)
+                    loadgen.copy_from(remote_output_file, output_file)
+                    loadgen.copy_from(remote_histogram_file, histogram_file)
         dut.stop_l2_reflector()
         # TODO try again when connection is lost
 
@@ -925,6 +1096,10 @@ def test_load_latency(
         if interface in ['brtap', 'macvtap']:
             host.kill_guest()
         host.cleanup_network()
+
+        # accumulate the histogram of multiple repetitions here
+        if accumulate:
+            accumulate_all_histograms(outdir, tests_todo)
 
 
 def test_load_lat_file(args: Namespace, conf: ConfigParser) -> None:
@@ -953,10 +1128,11 @@ def test_load_lat_file(args: Namespace, conf: ConfigParser) -> None:
             test_conf[section]['outdir'],
             test_conf[section]['loadprog'],
             test_conf[section]['reflprog'],
-            [r.strip() for r in test_conf[section]['rates'].split(',')],
-            [t.strip() for t in test_conf[section]['threads'].split(',')],
-            test_conf[section]['runtime'],
-            test_conf[section]['reps'],
+            [int(r.strip()) for r in test_conf[section]['rates'].split(',')],
+            [int(t.strip()) for t in test_conf[section]['threads'].split(',')],
+            int(test_conf[section]['runtime']),
+            int(test_conf[section]['reps']),
+            True if test_conf[section]['accumulate'] == 'true' else False,
             args,
             conf
         )
@@ -988,6 +1164,7 @@ def test_load_lat_cli(args: Namespace, conf: ConfigParser) -> None:
         args.threads,
         args.runtime,
         args.reps,
+        args.accumulate,
         args,
         conf
     )
