@@ -963,11 +963,14 @@ def test_load_latency(
     for interface in interfaces_needed:
         # setup interface
         dut: Server
+        mac: str
         if interface in ['brtap', 'macvtap']:
             host.run_guest(interface)
             dut = guest
+            mac = '52:54:00:fa:00:60'
         else:
             dut = host
+            mac = '64:9d:99:b1:0b:59'
         dut.bind_test_iface()
         dut.setup_hugetlbfs()
 
@@ -982,7 +985,7 @@ def test_load_latency(
                     info(f'Running test: {interface} {rate} {nthreads} {rep}')
                     # run test
                     try:
-                        loadgen.run_l2_load_latency(rate, runtime)
+                        loadgen.run_l2_load_latency(mac, rate, runtime)
                         sleep(1.1*runtime)
                     except Exception:
                         continue
