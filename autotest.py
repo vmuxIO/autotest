@@ -977,6 +977,7 @@ def test_load_latency(
         # run missing tests for interface one by one and download test results
         # dut.stop_l2_reflector()
         dut.start_l2_reflector()
+        sleep(5)
         for rate in rates:
             for nthreads in threads:
                 for rep in range(int(reps)):
