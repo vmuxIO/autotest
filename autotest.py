@@ -1052,7 +1052,7 @@ def test_load_latency(
         dut: Server
         mac: str
         if interface in ['brtap', 'macvtap']:
-            disk = args.disk if args.disk else conf['guest']['root_disk_file']
+            disk = conf['guest']['root_disk_file']
             host.run_guest(net_type=interface, machine_type='pc',
                            root_disk=disk)
             dut = guest
