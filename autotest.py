@@ -965,7 +965,7 @@ def test_load_latency(
         dut: Server
         mac: str
         if interface in ['brtap', 'macvtap']:
-            host.run_guest(interface)
+            host.run_guest(net_type=interface, machine_type='pc')
             dut = guest
             mac = '52:54:00:fa:00:60'
         else:
