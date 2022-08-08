@@ -1066,6 +1066,8 @@ def test_load_latency(
                     info(f'Running test: {interface} {rate} {nthreads} {rep}')
                     # run test
                     try:
+                        loadgen.exec(f'rm -f {remote_output_file} ' +
+                                     f'{remote_histogram_file}')
                         loadgen.run_l2_load_latency(mac, rate, runtime)
                         sleep(1.1*runtime)
                     except Exception as e:
