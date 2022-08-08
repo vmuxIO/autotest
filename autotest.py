@@ -774,7 +774,7 @@ def test_infix(interface: str, rate: int, nthreads: int, rep: int) -> str:
     rep : int
         The number of repetitions to test.
     """
-    return f'{interface}_{rate}_{nthreads}_{rep}'
+    return f'{interface}_r{rate}_t{nthreads}_{rep}'
 
 
 def output_filepath(outdir: str, interface: str, rate: int, nthreads: int,
