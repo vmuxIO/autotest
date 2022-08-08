@@ -1060,6 +1060,8 @@ def test_load_latency(
             for nthreads in threads:
                 for rep in range(reps):
                     if not tests_todo[interface][rate][nthreads][rep]:
+                        debug(f'Skipping test: {interface} {rate} {nthreads}' +
+                              f' {rep}, already done')
                         continue
                     info(f'Running test: {interface} {rate} {nthreads} {rep}')
                     # run test
