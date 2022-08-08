@@ -753,8 +753,6 @@ class Host(Server):
             ' -smp 4' +
             ' -m 4096' +
             ' -enable-kvm' +
-            # TODO the disk needs to be dynamically set by the config
-            # we might also wanna include commands ot make the image
             f' -drive id=root,format=raw,file={root_disk},if=none,' +
             'cache=none' +
             f' -device virtio-blk-{dev_type},id=rootdisk,drive=root' +
