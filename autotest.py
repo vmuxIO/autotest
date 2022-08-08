@@ -1042,11 +1042,11 @@ def test_load_lat_file(args: Namespace, conf: ConfigParser) -> None:
             test_conf[section]['outdir'],
             test_conf[section]['loadprog'],
             test_conf[section]['reflprog'],
-            [r.strip() for r in test_conf[section]['rates'].split(',')],
-            [t.strip() for t in test_conf[section]['threads'].split(',')],
-            test_conf[section]['runtime'],
-            test_conf[section]['reps'],
-            test_conf[section]['accumulate'],
+            [int(r.strip()) for r in test_conf[section]['rates'].split(',')],
+            [int(t.strip()) for t in test_conf[section]['threads'].split(',')],
+            int(test_conf[section]['runtime']),
+            int(test_conf[section]['reps']),
+            True if test_conf[section]['accumulate'] == 'true' else False,
             args,
             conf
         )
