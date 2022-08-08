@@ -1065,6 +1065,10 @@ def test_load_latency(
                         continue
                     info(f'Running test: {interface} {rate} {nthreads} {rep}')
                     # run test
+                    remote_output_file = path_join(loadgen.moongen_dir,
+                                                   'output.log')
+                    remote_histogram_file = path_join(loadgen.moongen_dir,
+                                                      'histogram.csv')
                     try:
                         loadgen.exec(f'rm -f {remote_output_file} ' +
                                      f'{remote_histogram_file}')
@@ -1083,14 +1087,8 @@ def test_load_latency(
                                                   nthreads, rep)
                     histogram_file = histogram_filepath(outdir, interface,
                                                         rate, nthreads, rep)
-                    loadgen.copy_from(
-                        path_join(loadgen.moongen_dir, 'output.log'),
-                        output_file
-                    )
-                    loadgen.copy_from(
-                        path_join(loadgen.moongen_dir, 'histogram.csv'),
-                        histogram_file
-                    )
+                    loadgen.copy_from(remote_output_file, output_file)
+                    loadgen.copy_from(remote_histogram_file, histogram_file)
         dut.stop_l2_reflector()
         # TODO try again when connection is lost
 
