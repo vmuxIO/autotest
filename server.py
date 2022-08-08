@@ -700,6 +700,7 @@ class Host(Server):
     def run_guest(self: 'Host',
                   net_type: str,
                   machine_type: str,
+                  root_disk: str,
                   debug_qemu: bool = False,
                   use_ioregionfd: bool = False
                   ) -> None:
@@ -713,6 +714,8 @@ class Host(Server):
             Test interface network type
         machine_type : str
             Guest machine type
+        root_disk : str
+            Path to the disk file for guest's root partition
         debug_qemu : bool
             True if you want to attach GDB to Qemu. The GDB server will
             be bound to port 1234.
@@ -752,7 +755,7 @@ class Host(Server):
             ' -enable-kvm' +
             # TODO the disk needs to be dynamically set by the config
             # we might also wanna include commands ot make the image
-            ' -drive id=root,format=raw,file=/dev/ssd/vm_guest,if=none,' +
+            f' -drive id=root,format=raw,file={root_disk},if=none,' +
             'cache=none' +
             f' -device virtio-blk-{dev_type},id=rootdisk,drive=root' +
             ' -cdrom /home/networkadmin/images/guest_init.iso' +
