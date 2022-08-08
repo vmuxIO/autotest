@@ -6,7 +6,7 @@ from argparse import (ArgumentParser, ArgumentDefaultsHelpFormatter, Namespace,
                       FileType, ArgumentTypeError)
 from argcomplete import autocomplete
 from configparser import ConfigParser
-from logging import (info, debug, basicConfig,
+from logging import (info, debug, error, basicConfig,
                      DEBUG, INFO, WARN, ERROR)
 from sys import argv, stderr, modules
 from time import sleep
@@ -988,7 +988,9 @@ def test_load_latency(
                     try:
                         loadgen.run_l2_load_latency(mac, rate, runtime)
                         sleep(1.1*runtime)
-                    except Exception:
+                    except Exception as e:
+                        error(f'Failed to run test: {interface} {rate} ' +
+                              f'{nthreads} {rep} due to exception: {e}')
                         continue
                     # TODO stopping still fails when the tmux session
                     # does not exist
