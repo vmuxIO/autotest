@@ -182,6 +182,12 @@ def setup_parser() -> ArgumentParser:
                                   default='pc',
                                   help='Machine type of the guest',
                                   )
+    run_guest_parser.add_argument('-D',
+                                  '--disk',
+                                  type=FileType('rw'),
+                                  help='Disk image path for the guest\'s ' +
+                                       'root partition.',
+                                  )
     run_guest_parser.add_argument('-d',
                                   '--debug',
                                   action='store_true',
