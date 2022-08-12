@@ -529,7 +529,7 @@ class Server(ABC):
         """
         return self.exec(f'basename $(realpath /sys/class/net/{iface}/device')
 
-    def start_l2_reflector(self: 'Server'):
+    def start_moongen_reflector(self: 'Server'):
         """
         Start the libmoon L2 reflector.
 
@@ -545,7 +545,7 @@ class Server(ABC):
                       f'sudo LD_PRELOAD={tbbmalloc_path} build/MoonGen ' +
                       f'libmoon/examples/reflector.lua {self._test_iface_id}')
 
-    def stop_l2_reflector(self: 'Server'):
+    def stop_moongen_reflector(self: 'Server'):
         """
         Stop the libmoon L2 reflector.
 

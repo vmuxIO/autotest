@@ -575,13 +575,13 @@ def test_pnic(args: Namespace, conf: ConfigParser) -> None:
     runtime = 60
 
     try:
-        host.start_l2_reflector()
+        host.start_moongen_reflector()
         loadgen.run_l2_load_latency(runtime)
         sleep(1.1*runtime)
     except Exception:
         loadgen.stop_l2_load_latency()
     finally:
-        host.stop_l2_reflector()
+        host.stop_moongen_reflector()
 
 
 # TODO this will be replaced by something more generic done the line
@@ -622,13 +622,13 @@ def test_vnic(args: Namespace, conf: ConfigParser) -> None:
     runtime = 60
 
     try:
-        guest.start_l2_reflector()
+        guest.start_moongen_reflector()
         loadgen.run_l2_load_latency(runtime)
         sleep(1.1*runtime)
     except Exception:
         loadgen.stop_l2_load_latency()
     finally:
-        guest.stop_l2_reflector()
+        guest.stop_moongen_reflector()
 
 
 def run_guest(args: Namespace, conf: ConfigParser) -> None:
@@ -1080,8 +1080,8 @@ def test_load_latency(
         dut.setup_hugetlbfs()
 
         # run missing tests for interface one by one and download test results
-        # dut.stop_l2_reflector()
-        dut.start_l2_reflector()
+        # dut.stop_moongen_reflector()
+        dut.start_moongen_reflector()
         sleep(5)
         for rate in rates:
             for nthreads in threads:
@@ -1116,7 +1116,7 @@ def test_load_latency(
                                                         rate, nthreads, rep)
                     loadgen.copy_from(remote_output_file, output_file)
                     loadgen.copy_from(remote_histogram_file, histogram_file)
-        dut.stop_l2_reflector()
+        dut.stop_moongen_reflector()
         # TODO try again when connection is lost
 
         # teardown interface
