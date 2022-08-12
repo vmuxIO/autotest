@@ -1124,9 +1124,9 @@ def test_load_latency(
             host.kill_guest()
         host.cleanup_network()
 
-        # accumulate the histogram of multiple repetitions here
-        if accumulate:
-            accumulate_all_histograms(outdir, tests_todo)
+    # accumulate the histogram of multiple repetitions here
+    if accumulate:
+        accumulate_all_histograms(outdir, tests_todo)
 
 
 def test_load_lat_file(args: Namespace, conf: ConfigParser) -> None:
