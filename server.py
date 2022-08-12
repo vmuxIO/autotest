@@ -508,6 +508,27 @@ class Server(ABC):
         """
         self.exec(f"cd {self.moongen_dir}; sudo ./setup-hugetlbfs.sh")
 
+    def get_nic_pci_address(self: 'Server', iface: str) -> str:
+        """
+        Get the PCI address for a network interface.
+
+        Parameters
+        ----------
+        iface : str
+            The network interface identifier.
+
+        Returns
+        -------
+        str
+            The PCI bus address.
+
+        Example
+        -------
+        >>> server.get_nic_pci_address('enp176s0')
+        0000:b0:00.0
+        """
+        return self.exec(f'basename $(realpath /sys/class/net/{iface}/device')
+
     def start_l2_reflector(self: 'Server'):
         """
         Start the libmoon L2 reflector.
