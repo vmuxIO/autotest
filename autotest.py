@@ -892,6 +892,10 @@ def accumulate_histograms(outdir: str, interface: str, rate: int,
     """
     info("Accumulating histograms.")
     assert reps > 0, 'Reps must be greater than 0'
+    if reps == 1:
+        debug(f'Skipping accumulation: {interface} {rate} {nthreads}' +
+              ', there is only one repetition')
+        return
 
     acc_hist_filename = f'acc_histogram_{interface}_r{rate}_t{nthreads}.csv'
     acc_hist_filepath = path_join(outdir, acc_hist_filename)
