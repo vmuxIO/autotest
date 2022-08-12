@@ -1050,6 +1050,13 @@ def test_load_latency(
     loadgen.bind_test_iface()
     loadgen.setup_hugetlbfs()
 
+    # clean up guest and network first
+    try:
+        host.kill_guest()
+    except Exception:
+        pass
+    host.cleanup_network()
+
     # loop over needed interfaces
     for interface in interfaces_needed:
         # setup interface
