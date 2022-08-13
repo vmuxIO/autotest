@@ -461,7 +461,7 @@ class Server(ABC):
         bool
             True if the test interface is bound to DPDK.
         """
-        return self.get_driver_for_device(self.test_iface_addr) == 'igb_uio'
+        return self.is_nic_dpdk_bound(self.test_iface)
 
     def bind_device(self: 'Server', dev_addr: str, driver: str) -> None:
         """
