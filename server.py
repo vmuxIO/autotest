@@ -1042,7 +1042,7 @@ class LoadGen(Server):
                  test_iface: str,
                  test_iface_addr: str,
                  moongen_dir: str,
-                 xdp_reflector_dir: str,
+                 xdp_reflector_dir: str = None,
                  localhost: bool = False) -> None:
         """
         Initialize the LoadGen class.
@@ -1077,7 +1077,7 @@ class LoadGen(Server):
         LoadGen(fqdn='server.test.de')
         """
         super().__init__(fqdn, test_iface, test_iface_addr, moongen_dir,
-                         localhost)
+                         xdp_reflector_dir, localhost)
 
     def run_l2_load_latency(self: 'LoadGen',
                             mac: str,
