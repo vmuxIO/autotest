@@ -606,7 +606,28 @@ class Server(ABC):
         """
         return self.exec(f'basename $(realpath /sys/class/net/{iface}/device')
 
-    def start_moongen_reflector(self: 'Server'):
+    def get_nic_mac_address(self: 'Server', iface: str) -> str:
+        """
+        Get the MAC address for a network interface.
+
+        Parameters
+        ----------
+        iface : str
+            The network interface identifier.
+
+        Returns
+        -------
+        str
+            The MAC address.
+
+        Example
+        -------
+        >>> server.get_nic_pci_address('enp176s0')
+        '64:9d:99:b1:0b:59'
+        """
+        return self.exec(f'cat /sys/class/net/{iface}/address')
+
+    def start_moongen_reflector(self: 'Server', iface: str = None):
         """
         Start the libmoon L2 reflector.
 
