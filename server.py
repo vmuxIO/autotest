@@ -529,7 +529,7 @@ class Server(ABC):
         Example
         -------
         >>> server.get_nic_pci_address('enp176s0')
-        0000:b0:00.0
+        '0000:b0:00.0'
         """
         return self.exec(f'basename $(realpath /sys/class/net/{iface}/device')
 
