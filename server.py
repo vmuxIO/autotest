@@ -428,6 +428,27 @@ class Server(ABC):
         """
         return self.get_driver_for_device(self.get_nic_pci_address(iface))
 
+    def is_nic_dpdk_bound(self: 'Server', iface: str) -> bool:
+        """
+        Check if a network interface is DPDK bound.
+
+        Parameters
+        ----------
+        iface : str
+            The network interface name.
+
+        Returns
+        -------
+        bool
+            True if the network interface is DPDK bound, False otherwise.
+
+        Examples
+        --------
+        >>> server.is_nic_dpdk_bound('enp176s0')
+        True
+        """
+        return self.get_driver_for_nic(iface) == 'igb_uio'
+
     def is_test_iface_bound(self: 'Server') -> bool:
         """
         Check if the test interface is bound to DPDK.
