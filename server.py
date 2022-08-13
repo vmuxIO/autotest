@@ -493,6 +493,18 @@ class Server(ABC):
         """
         self.exec(f'sudo dpdk-devbind.py -u {dev_addr}')
 
+    def bind_nics_to_dpdk(self: 'Server') -> None:
+        """
+        Bind all available network interfaces to DPDK.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        """
+        self.exec(f'cd {self.moongen_dir}; sudo ./bind-interfaces.sh')
+
     def bind_test_iface(self: 'Server') -> None:
         """
         Bind test interface to DPDK.
@@ -511,7 +523,7 @@ class Server(ABC):
             return
 
         # bind available interfaces to DPDK
-        self.exec(f'cd {self.moongen_dir}; sudo ./bind-interfaces.sh')
+        self.bind_nics_to_dpdk()
 
         # get the test interface id
         self.detect_test_iface_id()
