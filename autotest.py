@@ -224,16 +224,6 @@ def setup_parser() -> ArgumentParser:
         help='''Teardown the guest
         network.'''
     )
-    # test_pnic_parser = subparsers.add_parser(
-    #     'test-pnic',
-    #     formatter_class=ArgumentDefaultsHelpFormatter,
-    #     help='Test the physical NIC.'
-    # )
-    # test_vnic_parser = subparsers.add_parser(
-    #     'test-vnic',
-    #     formatter_class=ArgumentDefaultsHelpFormatter,
-    #     help='Test the VirtIO device.'
-    # )
     test_file_parser = subparsers.add_parser(
         'test-load-lat-file',
         formatter_class=ArgumentDefaultsHelpFormatter,
@@ -317,8 +307,6 @@ def setup_parser() -> ArgumentParser:
     __do_nothing(ping_parser)
     __do_nothing(kill_guest_parser)
     __do_nothing(teardown_network_parser)
-    # __do_nothing(test_pnic_parser)
-    # __do_nothing(test_vnic_parser)
 
     # return the parser
     return parser
@@ -538,99 +526,6 @@ def ping(args: Namespace, conf: ConfigParser) -> None:
     for name, server in create_servers(conf).items():
         print(f'{name}: ' +
               f"{'reachable' if server.is_reachable() else 'unreachable'}")
-
-
-def test_pnic(args: Namespace, conf: ConfigParser) -> None:
-    """
-    Test the physical NIC.
-
-    This a command function and is therefore called by execute_command().
-
-    Parameters
-    ----------
-    args : Namespace
-        The argparse namespace containing the parsed arguments.
-    conf : ConfigParser
-        The config parser.
-
-    Returns
-    -------
-
-    See Also
-    --------
-    execute_command : Execute the command.
-
-    Example
-    -------
-    >>> test_pnic(args, conf)
-    """
-    host: Host
-    loadgen: LoadGen
-    host, loadgen = create_servers(conf, guest=False).values()
-
-    loadgen.bind_test_iface()
-    host.bind_test_iface()
-
-    loadgen.setup_hugetlbfs()
-    host.setup_hugetlbfs()
-
-    runtime = 60
-
-    try:
-        host.start_moongen_reflector()
-        loadgen.run_l2_load_latency(runtime)
-        sleep(1.1*runtime)
-    except Exception:
-        loadgen.stop_l2_load_latency()
-    finally:
-        host.stop_moongen_reflector()
-
-
-# TODO this will be replaced by something more generic done the line
-def test_vnic(args: Namespace, conf: ConfigParser) -> None:
-    """
-    Test the bridged TAP interface
-
-    This a command function and is therefore called by execute_command().
-
-    Parameters
-    ----------
-    args : Namespace
-        The argparse namespace containing the parsed arguments.
-    conf : ConfigParser
-        The config parser.
-
-    Returns
-    -------
-
-    See Also
-    --------
-    execute_command : Execute the command.
-
-    Example
-    -------
-    >>> test_pnic(args, conf)
-    """
-    guest: Guest
-    loadgen: LoadGen
-    guest, loadgen = create_servers(conf, host=False).values()
-
-    loadgen.bind_test_iface()
-    guest.bind_test_iface()
-
-    loadgen.setup_hugetlbfs()
-    guest.setup_hugetlbfs()
-
-    runtime = 60
-
-    try:
-        guest.start_moongen_reflector()
-        loadgen.run_l2_load_latency(runtime)
-        sleep(1.1*runtime)
-    except Exception:
-        loadgen.stop_l2_load_latency()
-    finally:
-        guest.stop_moongen_reflector()
 
 
 def run_guest(args: Namespace, conf: ConfigParser) -> None:
