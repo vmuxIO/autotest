@@ -721,7 +721,7 @@ class Host(Server):
                  test_iface_addr: str,
                  test_iface_driv: str,
                  moongen_dir: str,
-                 xdp_reflector_dir: str = None,
+                 xdp_reflector_dir: str,
                  localhost: bool = False) -> None:
         """
         Initialize the Host class.
