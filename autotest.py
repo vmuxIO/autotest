@@ -161,7 +161,7 @@ def setup_parser() -> ArgumentParser:
     )
     # TODO a status command would be cool. It should tell us, which nodes
     # are running and how the device status is maybe
-    # TODO note this is just temporary, we will have more genernic commands
+    # TODO note this is just temporary, we will have more generic commands
     # later
     run_guest_parser = subparsers.add_parser(
         'run-guest',
