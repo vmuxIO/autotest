@@ -404,6 +404,30 @@ class Server(ABC):
         return self.exec(f'lspci -v -s {device_addr} | grep driver ' +
                          '| cut -d":" -f 2 | tr -d " "')
 
+    def get_driver_for_nic(self: 'Server', iface: str) -> str:
+        """
+        Get the driver for a network interface.
+
+        Parameters
+        ----------
+        iface : str
+            The network interface name.
+
+        Returns
+        -------
+        str
+            The driver for the network interface.
+
+        See Also
+        --------
+
+        Examples
+        --------
+        >>> server.get_driver_for_nic('enp176s0')
+        'ixgbe'
+        """
+        return self.get_driver_for_device(self.get_nic_pci_address(iface))
+
     def is_test_iface_bound(self: 'Server') -> bool:
         """
         Check if the test interface is bound to DPDK.
