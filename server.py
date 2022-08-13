@@ -26,6 +26,8 @@ class Server(ABC):
         The default driver of the interface to test.
     moongen_dir : str
         The directory of the MoonGen installation.
+    xdp_reflector_dir : str
+        The directory of the XDP reflector installation.
 
     Methods
     -------
@@ -58,6 +60,7 @@ class Server(ABC):
     _test_iface_id: int = field(default=None, init=False)
     test_iface_driv: str
     moongen_dir: str
+    xdp_reflector_dir: str
     localhost: bool = False
 
     def __post_init__(self: 'Server') -> None:
@@ -583,6 +586,7 @@ class Host(Server):
                  test_iface_addr: str,
                  test_iface_driv: str,
                  moongen_dir: str,
+                 xdp_reflector_dir: str = None,
                  localhost: bool = False) -> None:
         """
         Initialize the Host class.
@@ -597,6 +601,8 @@ class Host(Server):
             The IP address of the test interface.
         moongen_dir : str
             The directory of the MoonGen installation.
+        xdp_reflector_dir : str
+            The directory of the xdp reflector installation.
         localhost : bool
             True if the host is localhost.
 
@@ -615,7 +621,7 @@ class Host(Server):
         Host(fqdn='server.test.de')
         """
         super().__init__(fqdn, test_iface, test_iface_addr, test_iface_driv,
-                         moongen_dir, localhost)
+                         moongen_dir, xdp_reflector_dir, localhost)
 
     def setup_admin_tap(self: 'Host'):
         """
@@ -838,7 +844,8 @@ class Guest(Server):
                  test_iface: str,
                  test_iface_addr: str,
                  test_iface_driv: str,
-                 moongen_dir: str
+                 moongen_dir: str,
+                 xdp_reflector_dir: str,
                  ) -> None:
         """
         Initialize the Guest class.
@@ -853,6 +860,8 @@ class Guest(Server):
             The IP address of the test interface.
         moongen_dir : str
             The directory of the MoonGen installation.
+        xdp_reflector_dir : str
+            The directory of the XDP Reflector installation.
         localhost : bool
             True if the host is localhost.
 
@@ -871,7 +880,7 @@ class Guest(Server):
         Guest(fqdn='server.test.de')
         """
         super().__init__(fqdn, test_iface, test_iface_addr, test_iface_driv,
-                         moongen_dir)
+                         moongen_dir, xdp_reflector_dir)
 
 
 class LoadGen(Server):
@@ -898,6 +907,7 @@ class LoadGen(Server):
                  test_iface: str,
                  test_iface_addr: str,
                  moongen_dir: str,
+                 xdp_reflector_dir: str,
                  localhost: bool = False) -> None:
         """
         Initialize the LoadGen class.
@@ -912,6 +922,8 @@ class LoadGen(Server):
             The IP address of the test interface.
         moongen_dir : str
             The directory of the MoonGen installation.
+        xdp_reflector_dir : str
+            The directory of the XDP Reflector installation.
         localhost : bool
             True if the host is localhost.
 
