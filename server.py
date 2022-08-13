@@ -3,6 +3,7 @@ from subprocess import check_output, CalledProcessError
 from socket import getfqdn
 from logging import debug
 from abc import ABC
+from os.path import join as path_join
 
 
 @dataclass
@@ -559,6 +560,44 @@ class Server(ABC):
         -------
         """
         self.tmux_kill('reflector')
+
+    def start_xdp_reflector(self: 'Server', iface: str):
+        """
+        Start the xdp reflector.
+
+        Parameters
+        ----------
+        iface : str
+            The network interface identifier.
+
+        Returns
+        -------
+
+        Examples
+        --------
+        >>> server.start_xdp_reflector('enp176s0')
+        """
+        refl_obj_file_path = path_join(self.xdp_reflector_dir, 'reflector.o')
+        self.exec(f'sudo ip link set {iface} xdpgeneric obj ' +
+                  f'{refl_obj_file_path} sec xdp')
+
+    def stop_xdp_reflector(self: 'Server', iface: str):
+        """
+        Stop the xdp reflector.
+
+        Parameters
+        ----------
+        iface : str
+            The network interface identifier.
+
+        Returns
+        -------
+
+        Examples
+        --------
+        >>> server.stop_xdp_reflector('enp176s0')
+        """
+        self.exec(f'sudo ip link set {iface} xdpgeneric off')
 
 
 class Host(Server):
