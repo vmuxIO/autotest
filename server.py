@@ -29,6 +29,8 @@ class Server(ABC):
         The directory of the MoonGen installation.
     xdp_reflector_dir : str
         The directory of the XDP reflector installation.
+    localhost : bool
+        True if the server is localhost.
 
     Methods
     -------
