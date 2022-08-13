@@ -528,6 +528,27 @@ class Server(ABC):
         """
         self.bind_device(self.test_iface_addr, self.test_iface_driv)
 
+    def get_dpdk_iface_id(self: 'Server', iface: str) -> int:
+        """
+        Detect the DPDK interface id for a network interface.
+
+        Parameters
+        ----------
+        iface : str
+            The network interface name.
+
+        Returns
+        -------
+        int
+            The DPDK interface id.
+        """
+        output = self.exec("dpdk-devbind.py -s | grep 'drv=igb_uio'")
+        addr = self.get_nic_pci_address(iface)
+
+        for num, line in enumerate(output.splitlines()):
+            if line.startswith(addr):
+                return num
+
     def detect_test_iface_id(self: 'Server') -> None:
         """
         Detect the test interface's DPDK ID.
@@ -538,12 +559,7 @@ class Server(ABC):
         Returns
         -------
         """
-        output = self.exec("dpdk-devbind.py -s | grep 'drv=igb_uio'")
-
-        for num, line in enumerate(output.splitlines()):
-            if line.startswith(self.test_iface_addr):
-                self._test_iface_id = num
-                break
+        self._test_iface_id = self.get_dpdk_iface_id(self.test_iface)
 
     def setup_hugetlbfs(self: 'Server'):
         """
