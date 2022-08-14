@@ -6,8 +6,9 @@ from argparse import (ArgumentParser, ArgumentDefaultsHelpFormatter, Namespace,
                       FileType, ArgumentTypeError)
 from argcomplete import autocomplete
 from configparser import ConfigParser
-from logging import (info, debug, error, basicConfig,
+from logging import (info, debug, error,
                      DEBUG, INFO, WARN, ERROR)
+from colorlog import ColoredFormatter, StreamHandler, getLogger
 from sys import argv, stderr, modules
 from time import sleep
 from os import (access, W_OK)
@@ -436,8 +437,26 @@ def setup_logging(args: Namespace) -> None:
     -------
     >>> setup_logging(args)
     """
-    basicConfig(format='%(asctime)s %(levelname)s %(message)s',
-                level=LOG_LEVELS[args.verbosity])
+    logformat = '%(log_color)s%(asctime)s %(levelname)-8s %(message)s'
+    formatter = ColoredFormatter(
+        logformat,
+        datefmt=None,
+        reset=True,
+        log_colors={
+            'DEBUG':    'cyan',
+            'INFO':     'green',
+            'WARNING':  'yellow',
+            'ERROR':    'red',
+            'CRITICAL': 'red,bg_white',
+        },
+        secondary_log_colors={},
+        style='%'
+    )
+    handler = StreamHandler()
+    handler.setFormatter(formatter)
+    logger = getLogger()
+    logger.addHandler(handler)
+    logger.setLevel(LOG_LEVELS[args.verbosity])
 
 
 def create_servers(conf: ConfigParser,
