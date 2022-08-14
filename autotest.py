@@ -1001,7 +1001,7 @@ def test_load_latency(
                                      f'{remote_histogram_file}')
                         loadgen.run_l2_load_latency(dut.test_iface_mac,
                                                     rate, runtime)
-                        sleep(1.1*runtime)
+                        sleep(1.1 * runtime + 5)
                     except Exception as e:
                         error(f'Failed to run test: {interface} {rate} ' +
                               f'{nthreads} {rep} due to exception: {e}')
