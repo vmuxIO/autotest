@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from subprocess import check_output, CalledProcessError
 from socket import getfqdn
-from logging import debug
+from logging import debug, error
 from abc import ABC
 from os.path import join as path_join
 
@@ -413,6 +413,8 @@ class Server(ABC):
         """
         Get the driver for a network interface.
 
+        Note that this does not work, once the NIC is bound to DPDK.
+
         Parameters
         ----------
         iface : str
@@ -452,7 +454,7 @@ class Server(ABC):
         >>> server.is_nic_dpdk_bound('enp176s0')
         True
         """
-        return self.get_driver_for_nic(iface) == 'igb_uio'
+        return self.get_driver_for_device(self.test_iface_addr) == 'igb_uio'
 
     def is_test_iface_bound(self: 'Server') -> bool:
         """
@@ -466,7 +468,7 @@ class Server(ABC):
         bool
             True if the test interface is bound to DPDK.
         """
-        return self.is_nic_dpdk_bound(self.test_iface)
+        return self.get_driver_for_device(self.test_iface_addr) == 'igb_uio'
 
     def bind_device(self: 'Server', dev_addr: str, driver: str) -> None:
         """
@@ -545,30 +547,44 @@ class Server(ABC):
         """
         self.bind_device(self.test_iface_addr, self.test_iface_driv)
 
-    def get_dpdk_iface_id(self: 'Server', iface: str) -> int:
-        """
-        Detect the DPDK interface id for a network interface.
-
-        Parameters
-        ----------
-        iface : str
-            The network interface name.
-
-        Returns
-        -------
-        int
-            The DPDK interface id.
-        """
-        output = self.exec("dpdk-devbind.py -s | grep 'drv=igb_uio'")
-        addr = self.get_nic_pci_address(iface)
-
-        for num, line in enumerate(output.splitlines()):
-            if line.startswith(addr):
-                return num
-
     def detect_test_iface_id(self: 'Server') -> None:
         """
         Detect the test interface's DPDK ID.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        """
+        output = self.exec("dpdk-devbind.py -s | grep 'drv=igb_uio'")
+        debug(f"Detecting test interface DPDK id on {self.fqdn}")
+
+        for num, line in enumerate(output.splitlines()):
+            if line.startswith(self.test_iface_addr):
+                self._test_iface_id = num
+                debug(f"Detected {self.fqdn}'s test interface DPDK id: {num}")
+                return
+
+        error(f"Failed to detect {self.fqdn}'s test interface DPDK id.")
+
+    def has_pci_bus(self: 'Server') -> bool:
+        """
+        Check if the server has a PCI bus.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        bool
+            True if the server has a PCI bus.
+        """
+        return self.exec('lspci')
+
+    def detect_test_iface_by_mac(self: 'Server') -> None:
+        """
+        Detect the test interface by its MAC address.
 
         Parameters
         ----------
@@ -625,6 +641,8 @@ class Server(ABC):
         """
         Get the PCI address for a network interface.
 
+        Note that this does not work once the NIC is bould to DPDK.
+
         Parameters
         ----------
         iface : str
@@ -640,7 +658,10 @@ class Server(ABC):
         >>> server.get_nic_pci_address('enp176s0')
         '0000:b0:00.0'
         """
-        return self.exec(f'basename $(realpath /sys/class/net/{iface}/device')
+        return self.exec(
+            f"basename $(realpath /sys/class/net/{iface}/device " +
+            "| sed \"s/\\/virtio2//g\")"
+        ).replace('\n', '')
 
     def get_nic_mac_address(self: 'Server', iface: str) -> str:
         """
@@ -663,7 +684,7 @@ class Server(ABC):
         """
         return self.exec(f'cat /sys/class/net/{iface}/address')
 
-    def start_moongen_reflector(self: 'Server', iface: str = None):
+    def start_moongen_reflector(self: 'Server'):
         """
         Start the libmoon L2 reflector.
 
