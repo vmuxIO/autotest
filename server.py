@@ -87,6 +87,20 @@ class Server(ABC):
         """
         self.localhost = self.fqdn == 'localhost' or self.fqdn == getfqdn()
 
+    def log_name(self: 'Server') -> str:
+        """
+        Get the log name.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        str
+            The log name.
+        """
+        return f'{self.__class__.__name__.lower()} {self.fqdn}'
+
     def is_reachable(self: 'Server') -> bool:
         """
         Check if the server is reachable.
@@ -187,7 +201,7 @@ class Server(ABC):
         >>> print(server.exec('ls -l'))
         .bashrc
         """
-        debug(f'Executing command on {self.fqdn}: {command}')
+        debug(f'Executing command on {self.log_name()}: {command}')
         if self.localhost:
             return self.__exec_local(command)
         else:
@@ -355,6 +369,7 @@ class Server(ABC):
         -------
         >>> server.copy_to('/home/user/file.txt', '/home/user/file.txt')
         """
+        debug(f'Copying {source} to {self.log_name()}:{destination}')
         if self.localhost:
             self.__copy_local(source, destination)
         else:
@@ -384,6 +399,7 @@ class Server(ABC):
         -------
         >>> server.copy_from('/home/user/file.txt', '/home/user/file.txt')
         """
+        debug(f'Copying from {self.log_name()}:{source} to {destination}')
         if self.localhost:
             self.__copy_local(source, destination)
         else:
