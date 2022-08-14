@@ -485,7 +485,7 @@ def create_servers(conf: ConfigParser,
             conf['guest']['test_iface_driv'],
             conf['guest']['test_iface_mac'],
             conf['guest']['moongen_dir'],
-            conf['host']['xdp_reflector_dir']
+            conf['guest']['xdp_reflector_dir']
         )
     if loadgen:
         servers['loadgen'] = LoadGen(
