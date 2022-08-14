@@ -7,10 +7,6 @@ local hist   = require "histogram"
 local timer  = require "timer"
 
 local PKT_SIZE	= 60
--- local ETH_DST	= "52:54:00:fa:00:60"
--- local ETH_DST	= "64:9d:99:b1:0b:59"
--- local ETH_DST	= "3e:30:b3:51:a3:76"
--- local ETH_DST    = "4e:6d:83:f0:73:84"
 
 local function getRstFile(...)
 	local args = { ... }
