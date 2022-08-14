@@ -747,6 +747,7 @@ class Server(ABC):
         refl_obj_file_path = path_join(self.xdp_reflector_dir, 'reflector.o')
         self.exec(f'sudo ip link set {iface} xdpgeneric obj ' +
                   f'{refl_obj_file_path} sec xdp')
+        self.exec(f'sudo ip link set {iface} up')
 
     def stop_xdp_reflector(self: 'Server', iface: str):
         """
