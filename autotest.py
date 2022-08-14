@@ -790,8 +790,8 @@ def test_done(outdir: str, interface: str, reflector: str, rate: int,
     return isfile(output_file) and isfile(histogram_file)
 
 
-def accumulate_histograms(outdir: str, interface: str, rate: int,
-                          nthreads: int, reps: int) -> None:
+def accumulate_histograms(outdir: str, interface: str, reflector: str,
+                          rate: int, nthreads: int, reps: int) -> None:
     """
     Accumulate the histograms for all repetitions.
 
@@ -801,6 +801,8 @@ def accumulate_histograms(outdir: str, interface: str, rate: int,
         The output directory.
     interface : str
         The interface to use.
+    reflector : str
+        The reflector to use.
     rate : int
         The rate to use.
     nthreads : int
@@ -811,23 +813,25 @@ def accumulate_histograms(outdir: str, interface: str, rate: int,
     info("Accumulating histograms.")
     assert reps > 0, 'Reps must be greater than 0'
     if reps == 1:
-        debug(f'Skipping accumulation: {interface} {rate} {nthreads}' +
-              ', there is only one repetition')
+        debug(f'Skipping accumulation: {interface} {reflector} {rate} ' +
+              f'{nthreads}, there is only one repetition')
         return
 
-    acc_hist_filename = f'acc_histogram_{interface}_r{rate}_t{nthreads}.csv'
+    acc_hist_filename = \
+        f'acc_histogram_{interface}_{reflector}_r{rate}_t{nthreads}.csv'
     acc_hist_filepath = path_join(outdir, acc_hist_filename)
     if isfile(acc_hist_filepath):
-        debug(f'Skipping accumulation: {interface} {rate} {nthreads}' +
-              ', already done')
+        debug(f'Skipping accumulation: {interface} {reflector} {rate} ' +
+              f'{nthreads}, already done')
         return
 
     histogram = {}
     for rep in range(reps):
-        assert test_done(outdir, interface, rate, nthreads, rep), \
+        assert test_done(outdir, interface, reflector, rate, nthreads, rep), \
             'Test not done yet'
 
-        with open(histogram_filepath(outdir, interface, rate, nthreads, rep)
+        with open(histogram_filepath(outdir, interface, reflector, rate,
+                                     nthreads, rep)
                   ) as f:
             for line in f:
                 if line.startswith('#'):
@@ -844,6 +848,7 @@ def accumulate_histograms(outdir: str, interface: str, rate: int,
 
 def accumulate_all_histograms(
     outdir: str,
+    reflector: str,
     test_done: dict[str, dict[int, dict[int, bool]]]
 ) -> None:
     """
@@ -862,6 +867,7 @@ def accumulate_all_histograms(
                 accumulate_histograms(
                     outdir,
                     interface,
+                    reflector,
                     rate,
                     nthreads,
                     max(test_done[interface][rate][nthreads].keys()) + 1
