@@ -948,7 +948,8 @@ def test_load_latency(
         interface: {
             rate: {
                 nthreads: {
-                    rep: not test_done(outdir, interface, rate, nthreads, rep)
+                    rep: not test_done(outdir, interface, reflector, rate,
+                                       nthreads, rep)
                     for rep in range(reps)
                 }
                 for nthreads in (threads if interface != 'macvtap' else [1])
@@ -975,7 +976,7 @@ def test_load_latency(
         info('All tests are already done.')
         # accumulate the histogram of multiple repetitions here
         if accumulate:
-            accumulate_all_histograms(outdir, tests_todo)
+            accumulate_all_histograms(outdir, reflector, tests_todo)
         return
 
     # create server
@@ -1025,10 +1026,11 @@ def test_load_latency(
             for nthreads in threads:
                 for rep in range(reps):
                     if not tests_todo[interface][rate][nthreads][rep]:
-                        debug(f'Skipping test: {interface} {rate} {nthreads}' +
-                              f' {rep}, already done')
+                        debug(f'Skipping test: {interface} {reflector} ' +
+                              f'{rate} {nthreads} {rep}, already done')
                         continue
-                    info(f'Running test: {interface} {rate} {nthreads} {rep}')
+                    info(f'Running test: {interface} {reflector} {rate} ' +
+                         f'{nthreads} {rep}')
                     # run test
                     remote_output_file = path_join(loadgen.moongen_dir,
                                                    'output.log')
@@ -1041,18 +1043,19 @@ def test_load_latency(
                                                     rate, runtime)
                         sleep(1.1 * runtime + 5)
                     except Exception as e:
-                        error(f'Failed to run test: {interface} {rate} ' +
-                              f'{nthreads} {rep} due to exception: {e}')
+                        error(f'Failed to run test: {interface} {reflector} ' +
+                              f'{rate} {nthreads} {rep} due to exception: {e}')
                         continue
                     # TODO stopping still fails when the tmux session
                     # does not exist
                     # loadgen.stop_l2_load_latency()
 
                     # download results
-                    output_file = output_filepath(outdir, interface, rate,
-                                                  nthreads, rep)
+                    output_file = output_filepath(outdir, interface, reflector,
+                                                  rate, nthreads, rep)
                     histogram_file = histogram_filepath(outdir, interface,
-                                                        rate, nthreads, rep)
+                                                        reflector, rate,
+                                                        nthreads, rep)
                     loadgen.copy_from(remote_output_file, output_file)
                     loadgen.copy_from(remote_histogram_file, histogram_file)
         dut.stop_moongen_reflector()
@@ -1065,7 +1068,7 @@ def test_load_latency(
 
     # accumulate the histogram of multiple repetitions here
     if accumulate:
-        accumulate_all_histograms(outdir, tests_todo)
+        accumulate_all_histograms(outdir, reflector, tests_todo)
 
 
 def test_load_lat_file(args: Namespace, conf: ConfigParser) -> None:
