@@ -1,8 +1,25 @@
 {
   "cSpell.words": [
+    "DPDK",
+    "Mbit",
     "Qemu's",
+    "brtap",
+    "datefmt",
+    "devbind",
+    "driv",
     "getfqdn",
+    "hugetlbfs",
+    "iface",
+    "ioregionfd",
+    "ixgbe",
+    "macvtap",
+    "microvm",
+    "nics",
+    "pnic",
     "virtio",
-    "vmux"
-  ]
+    "vmux",
+    "xargs",
+    "xdpgeneric"
+  ],
+  "cSpell.enabled": true
 }

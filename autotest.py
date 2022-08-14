@@ -161,7 +161,7 @@ def setup_parser() -> ArgumentParser:
     )
     # TODO a status command would be cool. It should tell us, which nodes
     # are running and how the device status is maybe
-    # TODO note this is just temporary, we will have more genernic commands
+    # TODO note this is just temporary, we will have more generic commands
     # later
     run_guest_parser = subparsers.add_parser(
         'run-guest',
@@ -224,16 +224,6 @@ def setup_parser() -> ArgumentParser:
         help='''Teardown the guest
         network.'''
     )
-    # test_pnic_parser = subparsers.add_parser(
-    #     'test-pnic',
-    #     formatter_class=ArgumentDefaultsHelpFormatter,
-    #     help='Test the physical NIC.'
-    # )
-    # test_vnic_parser = subparsers.add_parser(
-    #     'test-vnic',
-    #     formatter_class=ArgumentDefaultsHelpFormatter,
-    #     help='Test the VirtIO device.'
-    # )
     test_file_parser = subparsers.add_parser(
         'test-load-lat-file',
         formatter_class=ArgumentDefaultsHelpFormatter,
@@ -268,6 +258,14 @@ def setup_parser() -> ArgumentParser:
                                  type=writable_dir,
                                  default='./outputs',
                                  help='Test output directory.',
+                                 )
+    test_cli_parser.add_argument('-f',
+                                 '--reflector',
+                                 type=str,
+                                 choices=['xdp', 'moongen'],
+                                 default='xdp',
+                                 help='Test network interface type. ' +
+                                      'Can be pnic, brtap or macvtap.',
                                  )
     test_cli_parser.add_argument('-L',
                                  '--loadprog',
@@ -317,8 +315,6 @@ def setup_parser() -> ArgumentParser:
     __do_nothing(ping_parser)
     __do_nothing(kill_guest_parser)
     __do_nothing(teardown_network_parser)
-    # __do_nothing(test_pnic_parser)
-    # __do_nothing(test_vnic_parser)
 
     # return the parser
     return parser
@@ -485,7 +481,9 @@ def create_servers(conf: ConfigParser,
             conf['host']['test_iface'],
             conf['host']['test_iface_addr'],
             conf['host']['test_iface_driv'],
-            conf['host']['moongen_dir']
+            conf['host']['test_iface_mac'],
+            conf['host']['moongen_dir'],
+            conf['host']['xdp_reflector_dir']
         )
     if guest:
         servers['guest'] = Guest(
@@ -493,7 +491,9 @@ def create_servers(conf: ConfigParser,
             conf['guest']['test_iface'],
             conf['guest']['test_iface_addr'],
             conf['guest']['test_iface_driv'],
-            conf['guest']['moongen_dir']
+            conf['guest']['test_iface_mac'],
+            conf['guest']['moongen_dir'],
+            conf['guest']['xdp_reflector_dir']
         )
     if loadgen:
         servers['loadgen'] = LoadGen(
@@ -501,6 +501,7 @@ def create_servers(conf: ConfigParser,
             conf['loadgen']['test_iface'],
             conf['loadgen']['test_iface_addr'],
             conf['loadgen']['test_iface_driv'],
+            conf['loadgen']['test_iface_mac'],
             conf['loadgen']['moongen_dir']
         )
     return servers
@@ -536,99 +537,6 @@ def ping(args: Namespace, conf: ConfigParser) -> None:
     for name, server in create_servers(conf).items():
         print(f'{name}: ' +
               f"{'reachable' if server.is_reachable() else 'unreachable'}")
-
-
-def test_pnic(args: Namespace, conf: ConfigParser) -> None:
-    """
-    Test the physical NIC.
-
-    This a command function and is therefore called by execute_command().
-
-    Parameters
-    ----------
-    args : Namespace
-        The argparse namespace containing the parsed arguments.
-    conf : ConfigParser
-        The config parser.
-
-    Returns
-    -------
-
-    See Also
-    --------
-    execute_command : Execute the command.
-
-    Example
-    -------
-    >>> test_pnic(args, conf)
-    """
-    host: Host
-    loadgen: LoadGen
-    host, loadgen = create_servers(conf, guest=False).values()
-
-    loadgen.bind_test_iface()
-    host.bind_test_iface()
-
-    loadgen.setup_hugetlbfs()
-    host.setup_hugetlbfs()
-
-    runtime = 60
-
-    try:
-        host.start_l2_reflector()
-        loadgen.run_l2_load_latency(runtime)
-        sleep(1.1*runtime)
-    except Exception:
-        loadgen.stop_l2_load_latency()
-    finally:
-        host.stop_l2_reflector()
-
-
-# TODO this will be replaced by something more generic done the line
-def test_vnic(args: Namespace, conf: ConfigParser) -> None:
-    """
-    Test the bridged TAP interface
-
-    This a command function and is therefore called by execute_command().
-
-    Parameters
-    ----------
-    args : Namespace
-        The argparse namespace containing the parsed arguments.
-    conf : ConfigParser
-        The config parser.
-
-    Returns
-    -------
-
-    See Also
-    --------
-    execute_command : Execute the command.
-
-    Example
-    -------
-    >>> test_pnic(args, conf)
-    """
-    guest: Guest
-    loadgen: LoadGen
-    guest, loadgen = create_servers(conf, host=False).values()
-
-    loadgen.bind_test_iface()
-    guest.bind_test_iface()
-
-    loadgen.setup_hugetlbfs()
-    guest.setup_hugetlbfs()
-
-    runtime = 60
-
-    try:
-        guest.start_l2_reflector()
-        loadgen.run_l2_load_latency(runtime)
-        sleep(1.1*runtime)
-    except Exception:
-        loadgen.stop_l2_load_latency()
-    finally:
-        guest.stop_l2_reflector()
 
 
 def run_guest(args: Namespace, conf: ConfigParser) -> None:
@@ -768,26 +676,29 @@ def teardown_network(args: Namespace, conf: ConfigParser) -> None:
     host.cleanup_network()
 
 
-def test_infix(interface: str, rate: int, nthreads: int, rep: int) -> str:
+def test_infix(interface: str, reflector: str, rate: int, nthreads: int,
+               rep: int) -> str:
     """
     Create a test infix for the test.
 
     Parameters
     ----------
     interface : str
-        The interface to test.
+        The interface name.
+    reflector : str
+        The reflector name.
     rate : int
-        The rate to test.
+        The rate in Mbit/s.
     nthreads : int
-        The number of threads to test.
+        The number of threads.
     rep : int
-        The number of repetitions to test.
+        The number of repetitions.
     """
-    return f'{interface}_r{rate}_t{nthreads}_{rep}'
+    return f'{interface}_{reflector}_r{rate}_t{nthreads}_{rep}'
 
 
-def output_filepath(outdir: str, interface: str, rate: int, nthreads: int,
-                    rep: int) -> str:
+def output_filepath(outdir: str, interface: str, reflector, rate: int,
+                    nthreads: int, rep: int) -> str:
     """
     Create the output filename.
 
@@ -797,6 +708,8 @@ def output_filepath(outdir: str, interface: str, rate: int, nthreads: int,
         The output directory.
     interface : str
         The interface name.
+    reflector : str
+        The reflector name.
     rate : int
         The rate in Mbit/s.
     nthreads : int
@@ -809,13 +722,13 @@ def output_filepath(outdir: str, interface: str, rate: int, nthreads: int,
     str
         The output filename.
     """
-    infix = test_infix(interface, rate, nthreads, rep)
+    infix = test_infix(interface, reflector, rate, nthreads, rep)
     filename = f'output_{infix}.log'
     return path_join(outdir, filename)
 
 
-def histogram_filepath(outdir: str, interface: str, rate: int, nthreads: int,
-                       rep: int) -> str:
+def histogram_filepath(outdir: str, interface: str, reflector: str, rate: int,
+                       nthreads: int, rep: int) -> str:
     """
     Create the histogram filename.
 
@@ -825,6 +738,8 @@ def histogram_filepath(outdir: str, interface: str, rate: int, nthreads: int,
         The output directory.
     interface : str
         The interface name.
+    reflector : str
+        The reflector name.
     rate : int
         The rate in Mbit/s.
     nthreads : int
@@ -837,12 +752,12 @@ def histogram_filepath(outdir: str, interface: str, rate: int, nthreads: int,
     str
         The histogram filename.
     """
-    infix = test_infix(interface, rate, nthreads, rep)
+    infix = test_infix(interface, reflector, rate, nthreads, rep)
     filename = f'histogram_{infix}.csv'
     return path_join(outdir, filename)
 
 
-def test_done(outdir: str, interface: str, rate: int,
+def test_done(outdir: str, interface: str, reflector: str, rate: int,
               nthreads: int, rep: int) -> bool:
     """
     Check if the test result is already available.
@@ -851,6 +766,8 @@ def test_done(outdir: str, interface: str, rate: int,
     ----------
     interface : str
         The interface to use.
+    reflector : str
+        The reflector to use.
     rate : int
         The rate to use.
     nthreads : int
@@ -865,15 +782,16 @@ def test_done(outdir: str, interface: str, rate: int,
     bool
         True if the test result is already available.
     """
-    output_file = output_filepath(outdir, interface, rate, nthreads, rep)
-    histogram_file = histogram_filepath(outdir, interface, rate, nthreads,
-                                        rep)
+    output_file = output_filepath(outdir, interface, reflector, rate, nthreads,
+                                  rep)
+    histogram_file = histogram_filepath(outdir, interface, reflector, rate,
+                                        nthreads, rep)
 
     return isfile(output_file) and isfile(histogram_file)
 
 
-def accumulate_histograms(outdir: str, interface: str, rate: int,
-                          nthreads: int, reps: int) -> None:
+def accumulate_histograms(outdir: str, interface: str, reflector: str,
+                          rate: int, nthreads: int, reps: int) -> None:
     """
     Accumulate the histograms for all repetitions.
 
@@ -883,6 +801,8 @@ def accumulate_histograms(outdir: str, interface: str, rate: int,
         The output directory.
     interface : str
         The interface to use.
+    reflector : str
+        The reflector to use.
     rate : int
         The rate to use.
     nthreads : int
@@ -892,20 +812,26 @@ def accumulate_histograms(outdir: str, interface: str, rate: int,
     """
     info("Accumulating histograms.")
     assert reps > 0, 'Reps must be greater than 0'
+    if reps == 1:
+        debug(f'Skipping accumulation: {interface} {reflector} {rate} ' +
+              f'{nthreads}, there is only one repetition')
+        return
 
-    acc_hist_filename = f'acc_histogram_i{interface}_r{rate}_t{nthreads}.csv'
+    acc_hist_filename = \
+        f'acc_histogram_{interface}_{reflector}_r{rate}_t{nthreads}.csv'
     acc_hist_filepath = path_join(outdir, acc_hist_filename)
     if isfile(acc_hist_filepath):
-        debug(f'Skipping accumulation: {interface} {rate} {nthreads}' +
-              ', already done')
+        debug(f'Skipping accumulation: {interface} {reflector} {rate} ' +
+              f'{nthreads}, already done')
         return
 
     histogram = {}
     for rep in range(reps):
-        assert test_done(outdir, interface, rate, nthreads, rep), \
+        assert test_done(outdir, interface, reflector, rate, nthreads, rep), \
             'Test not done yet'
 
-        with open(histogram_filepath(outdir, interface, rate, nthreads, rep)
+        with open(histogram_filepath(outdir, interface, reflector, rate,
+                                     nthreads, rep)
                   ) as f:
             for line in f:
                 if line.startswith('#'):
@@ -922,6 +848,7 @@ def accumulate_histograms(outdir: str, interface: str, rate: int,
 
 def accumulate_all_histograms(
     outdir: str,
+    reflector: str,
     test_done: dict[str, dict[int, dict[int, bool]]]
 ) -> None:
     """
@@ -940,6 +867,7 @@ def accumulate_all_histograms(
                 accumulate_histograms(
                     outdir,
                     interface,
+                    reflector,
                     rate,
                     nthreads,
                     max(test_done[interface][rate][nthreads].keys()) + 1
@@ -950,6 +878,7 @@ def test_load_latency(
     name: str,
     interfaces: list[str],
     outdir: str,
+    reflector: str,
     loadprog: str,
     reflprog: str,
     rates: list[int],
@@ -971,10 +900,12 @@ def test_load_latency(
         The interfaces to use.
     outdir : str
         The output directory.
+    reflector : str
+        The reflector to use. (xdp or moongen)
     loadprog : str
-        The load program.
+        The moongen load program.
     reflprog : str
-        The reflector program.
+        The moongen reflector program. (only used with moongen reflector)
     rates : list[int]
         The rates to use.
     threads : list[int]
@@ -989,10 +920,18 @@ def test_load_latency(
     Returns
     -------
     """
+    # some sanity checks
+    if reflector not in ['xdp', 'moongen']:
+        error(f'Unknown reflector: {reflector}')
+        return
+    # TODO once we also test the host bridge and macvtap we need to check
+    #      that only xdp is used as reflector
+
     info('Running test:')
     info(f'  name      : {name}')
     info(f'  interfaces: {interfaces}')
     info(f'  outdir    : {outdir}')
+    info(f'  reflector : {reflector}')
     info(f'  loadprog  : {loadprog}')
     info(f'  reflprog  : {reflprog}')
     info(f'  rates     : {rates}')
@@ -1000,13 +939,17 @@ def test_load_latency(
     info(f'  runtime   : {runtime}')
     info(f'  reps      : {reps}')
     info(f'  accumulate: {accumulate}')
+    # TODO name is not used
+    # TODO loadprog is not used
+    # TODO reflprog is not used
 
     # check which test results are still missing
     tests_todo = {
         interface: {
             rate: {
                 nthreads: {
-                    rep: not test_done(outdir, interface, rate, nthreads, rep)
+                    rep: not test_done(outdir, interface, reflector, rate,
+                                       nthreads, rep)
                     for rep in range(reps)
                 }
                 for nthreads in (threads if interface != 'macvtap' else [1])
@@ -1033,7 +976,7 @@ def test_load_latency(
         info('All tests are already done.')
         # accumulate the histogram of multiple repetitions here
         if accumulate:
-            accumulate_all_histograms(outdir, tests_todo)
+            accumulate_all_histograms(outdir, reflector, tests_todo)
         return
 
     # create server
@@ -1046,6 +989,13 @@ def test_load_latency(
     loadgen.bind_test_iface()
     loadgen.setup_hugetlbfs()
 
+    # clean up guest and network first
+    try:
+        host.kill_guest()
+    except Exception:
+        pass
+    host.cleanup_network()
+
     # loop over needed interfaces
     for interface in interfaces_needed:
         # setup interface
@@ -1053,28 +1003,45 @@ def test_load_latency(
         mac: str
         if interface in ['brtap', 'macvtap']:
             disk = conf['guest']['root_disk_file']
+            host.setup_admin_tap()
+            if interface == 'brtap':
+                host.setup_test_br_tap()
+            else:
+                host.setup_test_macvtap()
             host.run_guest(net_type=interface, machine_type='pc',
                            root_disk=disk)
             dut = guest
-            mac = '52:54:00:fa:00:60'
         else:
             dut = host
-            mac = '64:9d:99:b1:0b:59'
-        dut.bind_test_iface()
-        dut.setup_hugetlbfs()
+
+        try:
+            dut.wait_for_connection()
+        except TimeoutError:
+            error(f'Waiting for connection to DUT {dut.fqdn} timed out.')
+            return
+
+        dut.detect_test_iface()
+
+        # start the reflector
+        # dut.stop_moongen_reflector()
+        if reflector == 'xdp':
+            dut.start_xdp_reflector(dut.test_iface)
+        elif reflector == 'moongen':
+            dut.bind_test_iface()
+            dut.setup_hugetlbfs()
+            dut.start_moongen_reflector()
+        sleep(5)
 
         # run missing tests for interface one by one and download test results
-        # dut.stop_l2_reflector()
-        dut.start_l2_reflector()
-        sleep(5)
         for rate in rates:
             for nthreads in threads:
                 for rep in range(reps):
                     if not tests_todo[interface][rate][nthreads][rep]:
-                        debug(f'Skipping test: {interface} {rate} {nthreads}' +
-                              f' {rep}, already done')
+                        debug(f'Skipping test: {interface} {reflector} ' +
+                              f'{rate} {nthreads} {rep}, already done')
                         continue
-                    info(f'Running test: {interface} {rate} {nthreads} {rep}')
+                    info(f'Running test: {interface} {reflector} {rate} ' +
+                         f'{nthreads} {rep}')
                     # run test
                     remote_output_file = path_join(loadgen.moongen_dir,
                                                    'output.log')
@@ -1083,24 +1050,42 @@ def test_load_latency(
                     try:
                         loadgen.exec(f'rm -f {remote_output_file} ' +
                                      f'{remote_histogram_file}')
-                        loadgen.run_l2_load_latency(mac, rate, runtime)
-                        sleep(1.1*runtime)
+                        loadgen.run_l2_load_latency(dut.test_iface_mac,
+                                                    rate, runtime)
                     except Exception as e:
-                        error(f'Failed to run test: {interface} {rate} ' +
-                              f'{nthreads} {rep} due to exception: {e}')
+                        error(f'Failed to run test: {interface} {reflector} ' +
+                              f'{rate} {nthreads} {rep} due to exception: {e}')
                         continue
+
+                    sleep(runtime + 5)
+                    try:
+                        loadgen.wait_for_success(f'ls {remote_histogram_file}')
+                    except TimeoutError:
+                        error('Waiting for histogram file to appear timed ' +
+                              f'out for test: {interface} {reflector} ' +
+                              f'{rate} {nthreads} {rep}')
+                        continue
+                    sleep(1)
+                    # TODO here a tmux_exists function would come in handy
+
                     # TODO stopping still fails when the tmux session
                     # does not exist
                     # loadgen.stop_l2_load_latency()
 
                     # download results
-                    output_file = output_filepath(outdir, interface, rate,
-                                                  nthreads, rep)
+                    output_file = output_filepath(outdir, interface, reflector,
+                                                  rate, nthreads, rep)
                     histogram_file = histogram_filepath(outdir, interface,
-                                                        rate, nthreads, rep)
+                                                        reflector, rate,
+                                                        nthreads, rep)
                     loadgen.copy_from(remote_output_file, output_file)
                     loadgen.copy_from(remote_histogram_file, histogram_file)
-        dut.stop_l2_reflector()
+
+        # stop the reflector
+        if reflector == 'xdp':
+            dut.stop_xdp_reflector(dut.test_iface)
+        elif reflector == 'moongen':
+            dut.stop_moongen_reflector()
         # TODO try again when connection is lost
 
         # teardown interface
@@ -1108,9 +1093,9 @@ def test_load_latency(
             host.kill_guest()
         host.cleanup_network()
 
-        # accumulate the histogram of multiple repetitions here
-        if accumulate:
-            accumulate_all_histograms(outdir, tests_todo)
+    # accumulate the histogram of multiple repetitions here
+    if accumulate:
+        accumulate_all_histograms(outdir, reflector, tests_todo)
 
 
 def test_load_lat_file(args: Namespace, conf: ConfigParser) -> None:
@@ -1137,6 +1122,7 @@ def test_load_lat_file(args: Namespace, conf: ConfigParser) -> None:
             test_conf[section]['name'],
             [i.strip() for i in test_conf[section]['interfaces'].split(',')],
             test_conf[section]['outdir'],
+            test_conf[section]['reflector'],
             test_conf[section]['loadprog'],
             test_conf[section]['reflprog'],
             [int(r.strip()) for r in test_conf[section]['rates'].split(',')],
@@ -1169,6 +1155,7 @@ def test_load_lat_cli(args: Namespace, conf: ConfigParser) -> None:
         args.name,
         args.interfaces,
         args.outdir,
+        args.reflector,
         args.loadprog.name,
         args.reflprog.name,
         args.rates,

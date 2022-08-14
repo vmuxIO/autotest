@@ -1,8 +1,11 @@
 from dataclasses import dataclass, field
 from subprocess import check_output, CalledProcessError
 from socket import getfqdn
-from logging import debug
+from logging import debug, error
+from time import sleep
+from datetime import datetime
 from abc import ABC
+from os.path import join as path_join
 
 
 @dataclass
@@ -24,8 +27,14 @@ class Server(ABC):
         The PCI bus address of the interface to test.
     test_iface_driv : str
         The default driver of the interface to test.
+    test_iface_mac : str
+        The MAC address of the interface to test.
     moongen_dir : str
         The directory of the MoonGen installation.
+    xdp_reflector_dir : str
+        The directory of the XDP reflector installation.
+    localhost : bool
+        True if the server is localhost.
 
     Methods
     -------
@@ -57,7 +66,9 @@ class Server(ABC):
     test_iface_addr: str
     _test_iface_id: int = field(default=None, init=False)
     test_iface_driv: str
+    test_iface_mac: str
     moongen_dir: str
+    xdp_reflector_dir: str
     localhost: bool = False
 
     def __post_init__(self: 'Server') -> None:
@@ -77,6 +88,20 @@ class Server(ABC):
         __init__ : Initialize the object.
         """
         self.localhost = self.fqdn == 'localhost' or self.fqdn == getfqdn()
+
+    def log_name(self: 'Server') -> str:
+        """
+        Get the log name.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        str
+            The log name.
+        """
+        return f'{self.__class__.__name__.lower()} {self.fqdn}'
 
     def is_reachable(self: 'Server') -> bool:
         """
@@ -178,7 +203,7 @@ class Server(ABC):
         >>> print(server.exec('ls -l'))
         .bashrc
         """
-        debug(f'Executing command on {self.fqdn}: {command}')
+        debug(f'Executing command on {self.log_name()}: {command}')
         if self.localhost:
             return self.__exec_local(command)
         else:
@@ -346,6 +371,7 @@ class Server(ABC):
         -------
         >>> server.copy_to('/home/user/file.txt', '/home/user/file.txt')
         """
+        debug(f'Copying {source} to {self.log_name()}:{destination}')
         if self.localhost:
             self.__copy_local(source, destination)
         else:
@@ -375,10 +401,60 @@ class Server(ABC):
         -------
         >>> server.copy_from('/home/user/file.txt', '/home/user/file.txt')
         """
+        debug(f'Copying from {self.log_name()}:{source} to {destination}')
         if self.localhost:
             self.__copy_local(source, destination)
         else:
             self.__scp_from(source, destination)
+
+    def wait_for_success(self: 'Server', command: str, timeout: int = 10
+                         ) -> None:
+        """
+        Wait for a command to succeed.
+
+        Parameters
+        ----------
+        command : str
+            The command to execute.
+        timeout : int
+            The timeout in seconds.
+
+        Returns
+        -------
+
+        See Also
+        --------
+        exec : Execute command on the server.
+        """
+        start = datetime.now()
+        while (datetime.now() - start).total_seconds() < timeout:
+            try:
+                self.exec(command)
+                return
+            except Exception:
+                sleep(1)
+
+        raise TimeoutError(f'Execution on {self.log_name()} of command ' +
+                           f'{command} timed out after {timeout} seconds')
+
+    def wait_for_connection(self: 'Server', timeout: int = 10
+                            ) -> None:
+        """
+        Wait for the server to be connected.
+
+        Parameters
+        ----------
+        timeout : int
+            The timeout in seconds.
+
+        Returns
+        -------
+        """
+        try:
+            self.wait_for_success('echo', timeout)
+        except TimeoutError:
+            raise TimeoutError(f'Connection attempts to {self.log_name()} ' +
+                               f'timed out after {timeout} seconds')
 
     def get_driver_for_device(self: 'Server', device_addr: str) -> str:
         """
@@ -399,6 +475,53 @@ class Server(ABC):
         """
         return self.exec(f'lspci -v -s {device_addr} | grep driver ' +
                          '| cut -d":" -f 2 | tr -d " "')
+
+    def get_driver_for_nic(self: 'Server', iface: str) -> str:
+        """
+        Get the driver for a network interface.
+
+        Note that this does not work, once the NIC is bound to DPDK.
+
+        Parameters
+        ----------
+        iface : str
+            The network interface name.
+
+        Returns
+        -------
+        str
+            The driver for the network interface.
+
+        See Also
+        --------
+
+        Examples
+        --------
+        >>> server.get_driver_for_nic('enp176s0')
+        'ixgbe'
+        """
+        return self.get_driver_for_device(self.get_nic_pci_address(iface))
+
+    def is_nic_dpdk_bound(self: 'Server', iface: str) -> bool:
+        """
+        Check if a network interface is DPDK bound.
+
+        Parameters
+        ----------
+        iface : str
+            The network interface name.
+
+        Returns
+        -------
+        bool
+            True if the network interface is DPDK bound, False otherwise.
+
+        Examples
+        --------
+        >>> server.is_nic_dpdk_bound('enp176s0')
+        True
+        """
+        return self.get_driver_for_device(self.test_iface_addr) == 'igb_uio'
 
     def is_test_iface_bound(self: 'Server') -> bool:
         """
@@ -444,6 +567,18 @@ class Server(ABC):
         """
         self.exec(f'sudo dpdk-devbind.py -u {dev_addr}')
 
+    def bind_nics_to_dpdk(self: 'Server') -> None:
+        """
+        Bind all available network interfaces to DPDK.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        """
+        self.exec(f'cd {self.moongen_dir}; sudo ./bind-interfaces.sh')
+
     def bind_test_iface(self: 'Server') -> None:
         """
         Bind test interface to DPDK.
@@ -462,7 +597,7 @@ class Server(ABC):
             return
 
         # bind available interfaces to DPDK
-        self.exec(f'cd {self.moongen_dir}; sudo ./bind-interfaces.sh')
+        self.bind_nics_to_dpdk()
 
         # get the test interface id
         self.detect_test_iface_id()
@@ -490,11 +625,72 @@ class Server(ABC):
         -------
         """
         output = self.exec("dpdk-devbind.py -s | grep 'drv=igb_uio'")
+        debug(f"Detecting test interface DPDK id on {self.fqdn}")
 
         for num, line in enumerate(output.splitlines()):
             if line.startswith(self.test_iface_addr):
                 self._test_iface_id = num
-                break
+                debug(f"Detected {self.fqdn}'s test interface DPDK id: {num}")
+                return
+
+        error(f"Failed to detect {self.fqdn}'s test interface DPDK id.")
+
+    def has_pci_bus(self: 'Server') -> bool:
+        """
+        Check if the server has a PCI bus.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        bool
+            True if the server has a PCI bus.
+        """
+        return self.exec('lspci')
+
+    def detect_test_iface_by_mac(self: 'Server') -> None:
+        """
+        Detect the test interface by its MAC address.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        """
+        output = self.exec("for d in /sys/class/net/*; " +
+                           "do echo $(basename $d) $(cat $d/address); done")
+        debug(f"Detecting test interface on {self.fqdn}")
+
+        for line in output.splitlines():
+            iface, mac = line.split()
+            if mac != self.test_iface_mac:
+                continue
+            self.test_iface = iface
+            debug(f"Detected {self.fqdn}'s test interface: {self.test_iface}")
+
+            if not self.has_pci_bus():
+                return
+
+            self.test_iface_addr = self.get_nic_pci_address(self.test_iface)
+            self.test_iface_driv = self.get_driver_for_nic(self.test_iface)
+            return
+
+        error(f"Failed to detect {self.fqdn}'s test interface.")
+
+    def detect_test_iface(self: 'Server') -> None:
+        """
+        Detect the test interface if necessary.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        """
+        if not self.test_iface:
+            self.detect_test_iface_by_mac()
 
     def setup_hugetlbfs(self: 'Server'):
         """
@@ -508,7 +704,54 @@ class Server(ABC):
         """
         self.exec(f"cd {self.moongen_dir}; sudo ./setup-hugetlbfs.sh")
 
-    def start_l2_reflector(self: 'Server'):
+    def get_nic_pci_address(self: 'Server', iface: str) -> str:
+        """
+        Get the PCI address for a network interface.
+
+        Note that this does not work once the NIC is bould to DPDK.
+
+        Parameters
+        ----------
+        iface : str
+            The network interface identifier.
+
+        Returns
+        -------
+        str
+            The PCI bus address.
+
+        Example
+        -------
+        >>> server.get_nic_pci_address('enp176s0')
+        '0000:b0:00.0'
+        """
+        return self.exec(
+            f"basename $(realpath /sys/class/net/{iface}/device " +
+            "| sed \"s/\\/virtio2//g\")"
+        ).replace('\n', '')
+
+    def get_nic_mac_address(self: 'Server', iface: str) -> str:
+        """
+        Get the MAC address for a network interface.
+
+        Parameters
+        ----------
+        iface : str
+            The network interface identifier.
+
+        Returns
+        -------
+        str
+            The MAC address.
+
+        Example
+        -------
+        >>> server.get_nic_pci_address('enp176s0')
+        '64:9d:99:b1:0b:59'
+        """
+        return self.exec(f'cat /sys/class/net/{iface}/address')
+
+    def start_moongen_reflector(self: 'Server'):
         """
         Start the libmoon L2 reflector.
 
@@ -524,7 +767,7 @@ class Server(ABC):
                       f'sudo LD_PRELOAD={tbbmalloc_path} build/MoonGen ' +
                       f'libmoon/examples/reflector.lua {self._test_iface_id}')
 
-    def stop_l2_reflector(self: 'Server'):
+    def stop_moongen_reflector(self: 'Server'):
         """
         Stop the libmoon L2 reflector.
 
@@ -535,6 +778,47 @@ class Server(ABC):
         -------
         """
         self.tmux_kill('reflector')
+
+    def start_xdp_reflector(self: 'Server', iface: str):
+        # TODO we could have the test_iface as default value here
+        """
+        Start the xdp reflector.
+
+        Parameters
+        ----------
+        iface : str
+            The network interface identifier.
+
+        Returns
+        -------
+
+        Examples
+        --------
+        >>> server.start_xdp_reflector('enp176s0')
+        """
+        refl_obj_file_path = path_join(self.xdp_reflector_dir, 'reflector.o')
+        self.exec(f'sudo ip link set {iface} xdpgeneric obj ' +
+                  f'{refl_obj_file_path} sec xdp')
+        self.exec(f'sudo ip link set {iface} up')
+
+    def stop_xdp_reflector(self: 'Server', iface: str):
+        # TODO we could have the test_iface as default value here
+        """
+        Stop the xdp reflector.
+
+        Parameters
+        ----------
+        iface : str
+            The network interface identifier.
+
+        Returns
+        -------
+
+        Examples
+        --------
+        >>> server.stop_xdp_reflector('enp176s0')
+        """
+        self.exec(f'sudo ip link set {iface} xdpgeneric off')
 
 
 class Host(Server):
@@ -560,8 +844,10 @@ class Host(Server):
                  fqdn: str,
                  test_iface: str,
                  test_iface_addr: str,
+                 test_iface_mac: str,
                  test_iface_driv: str,
                  moongen_dir: str,
+                 xdp_reflector_dir: str,
                  localhost: bool = False) -> None:
         """
         Initialize the Host class.
@@ -574,8 +860,14 @@ class Host(Server):
             The name of the test interface.
         test_iface_addr : str
             The IP address of the test interface.
+        test_iface_mac : str
+            The MAC address of the test interface.
+        test_iface_driv : str
+            The driver of the test interface.
         moongen_dir : str
             The directory of the MoonGen installation.
+        xdp_reflector_dir : str
+            The directory of the xdp reflector installation.
         localhost : bool
             True if the host is localhost.
 
@@ -593,8 +885,9 @@ class Host(Server):
         >>> Host('server.test.de')
         Host(fqdn='server.test.de')
         """
-        super().__init__(fqdn, test_iface, test_iface_addr, test_iface_driv,
-                         moongen_dir, localhost)
+        super().__init__(fqdn, test_iface, test_iface_addr, test_iface_mac,
+                         test_iface_driv, moongen_dir, xdp_reflector_dir,
+                         localhost)
 
     def setup_admin_tap(self: 'Host'):
         """
@@ -789,6 +1082,7 @@ class Host(Server):
         -------
         """
         self.release_test_iface()
+        self.stop_xdp_reflector(self.test_iface)
         self.exec('sudo ip link delete tap1 2>/dev/null || true')
         self.exec('sudo ip link delete br1 2>/dev/null || true')
         self.exec('sudo ip link delete macvtap1 2>/dev/null || true')
@@ -816,8 +1110,10 @@ class Guest(Server):
                  fqdn: str,
                  test_iface: str,
                  test_iface_addr: str,
+                 test_iface_mac: str,
                  test_iface_driv: str,
-                 moongen_dir: str
+                 moongen_dir: str,
+                 xdp_reflector_dir: str,
                  ) -> None:
         """
         Initialize the Guest class.
@@ -830,8 +1126,14 @@ class Guest(Server):
             The name of the test interface.
         test_iface_addr : str
             The IP address of the test interface.
+        test_iface_mac : str
+            The MAC address of the test interface.
+        test_iface_driv : str
+            The driver of the test interface.
         moongen_dir : str
             The directory of the MoonGen installation.
+        xdp_reflector_dir : str
+            The directory of the XDP Reflector installation.
         localhost : bool
             True if the host is localhost.
 
@@ -849,8 +1151,8 @@ class Guest(Server):
         >>> Guest('server.test.de')
         Guest(fqdn='server.test.de')
         """
-        super().__init__(fqdn, test_iface, test_iface_addr, test_iface_driv,
-                         moongen_dir)
+        super().__init__(fqdn, test_iface, test_iface_addr, test_iface_mac,
+                         test_iface_driv, moongen_dir, xdp_reflector_dir)
 
 
 class LoadGen(Server):
@@ -876,7 +1178,10 @@ class LoadGen(Server):
                  fqdn: str,
                  test_iface: str,
                  test_iface_addr: str,
+                 test_iface_mac: str,
+                 test_iface_driv: str,
                  moongen_dir: str,
+                 xdp_reflector_dir: str = None,
                  localhost: bool = False) -> None:
         """
         Initialize the LoadGen class.
@@ -889,8 +1194,14 @@ class LoadGen(Server):
             The name of the test interface.
         test_iface_addr : str
             The IP address of the test interface.
+        test_iface_mac : str
+            The MAC address of the test interface.
+        test_iface_driv : str
+            The driver of the test interface.
         moongen_dir : str
             The directory of the MoonGen installation.
+        xdp_reflector_dir : str
+            The directory of the XDP Reflector installation.
         localhost : bool
             True if the host is localhost.
 
@@ -908,7 +1219,8 @@ class LoadGen(Server):
         >>> LoadGen('server.test.de')
         LoadGen(fqdn='server.test.de')
         """
-        super().__init__(fqdn, test_iface, test_iface_addr, moongen_dir,
+        super().__init__(fqdn, test_iface, test_iface_addr, test_iface_mac,
+                         test_iface_driv, moongen_dir, xdp_reflector_dir,
                          localhost)
 
     def run_l2_load_latency(self: 'LoadGen',
@@ -947,9 +1259,9 @@ class LoadGen(Server):
         tbbmalloc_path = ('./build/libmoon/tbb_cmake_build/' +
                           'tbb_cmake_build_subdir_release/libtbbmalloc.so.2')
         self.tmux_new('loadlatency', f'cd {self.moongen_dir}; ' +
-                      f'sudo LD_PRELOAD={tbbmalloc_path} timeout {runtime} ' +
+                      f'sudo LD_PRELOAD={tbbmalloc_path} ' +
                       'build/MoonGen examples/l2-load-latency.lua ' +
-                      f'-r {rate} -f {histfile} ' +
+                      f'-r {rate} -f {histfile} -t {runtime} ' +
                       f'{self._test_iface_id} {mac} ' +
                       f'2>&1 > {outfile}')
 
