@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from subprocess import check_output, CalledProcessError
+from subprocess import check_output, CalledProcessError, STDOUT
 from socket import getfqdn
 from logging import debug, error
 from time import sleep
@@ -150,7 +150,7 @@ class Server(ABC):
         exec : Execute command on the server.
         __exec_ssh : Execute a command on the server over SSH.
         """
-        return check_output(command, shell=True).decode('utf-8')
+        return check_output(command, stderr=STDOUT, shell=True).decode('utf-8')
 
     def __exec_ssh(self: 'Server', command: str) -> str:
         """
@@ -175,7 +175,7 @@ class Server(ABC):
         __exec_local : Execute a command on the localhost.
         """
         return check_output(f"ssh {self.fqdn} '{command}'",
-                            shell=True).decode('utf-8')
+                            stderr=STDOUT, shell=True).decode('utf-8')
 
     def exec(self: 'Server', command: str) -> str:
         """
@@ -229,7 +229,7 @@ class Server(ABC):
         tmux_kill : Stop a tmux session on the server.
         tmux_send_keys : Send keys to a tmux session on the server.
         """
-        self.exec(f'tmux new-session -s {session_name} -d "{command}"')
+        _ = self.exec(f'tmux new-session -s {session_name} -d "{command}"')
 
     def tmux_kill(self: 'Server', session_name: str) -> None:
         """
@@ -249,8 +249,8 @@ class Server(ABC):
         tmux_new : Start a tmux session on the server.
         tmux_send_keys : Send keys to a tmux session on the server.
         """
-        self.exec('tmux list-sessions | cut -d ":" -f 1 ' +
-                  f'| grep {session_name} | xargs tmux kill-session -t')
+        _ = self.exec('tmux list-sessions | cut -d ":" -f 1 ' +
+                      f'| grep {session_name} | xargs tmux kill-session -t')
 
     def tmux_send_keys(self: 'Server', session_name: str, keys: str) -> None:
         """
@@ -272,7 +272,7 @@ class Server(ABC):
         tmux_new : Start a tmux session on the server.
         tmux_kill : Stop a tmux session on the server.
         """
-        self.exec(f'tmux send-keys -t {session_name} {keys}')
+        _ = self.exec(f'tmux send-keys -t {session_name} {keys}')
 
     def __copy_local(self: 'Server', source: str, destination: str) -> None:
         """
@@ -429,7 +429,7 @@ class Server(ABC):
         start = datetime.now()
         while (datetime.now() - start).total_seconds() < timeout:
             try:
-                self.exec(command)
+                _ = self.exec(command)
                 return
             except Exception:
                 sleep(1)
@@ -551,7 +551,7 @@ class Server(ABC):
         Returns
         -------
         """
-        self.exec(f'sudo dpdk-devbind.py -b {driver} {dev_addr}')
+        _ = self.exec(f'sudo dpdk-devbind.py -b {driver} {dev_addr}')
 
     def unbind_device(self: 'Server', dev_addr: str) -> None:
         """
@@ -565,7 +565,7 @@ class Server(ABC):
         Returns
         -------
         """
-        self.exec(f'sudo dpdk-devbind.py -u {dev_addr}')
+        _ = self.exec(f'sudo dpdk-devbind.py -u {dev_addr}')
 
     def bind_nics_to_dpdk(self: 'Server') -> None:
         """
@@ -577,7 +577,7 @@ class Server(ABC):
         Returns
         -------
         """
-        self.exec(f'cd {self.moongen_dir}; sudo ./bind-interfaces.sh')
+        _ = self.exec(f'cd {self.moongen_dir}; sudo ./bind-interfaces.sh')
 
     def bind_test_iface(self: 'Server') -> None:
         """
