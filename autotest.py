@@ -676,22 +676,25 @@ def teardown_network(args: Namespace, conf: ConfigParser) -> None:
     host.cleanup_network()
 
 
-def test_infix(interface: str, rate: int, nthreads: int, rep: int) -> str:
+def test_infix(interface: str, reflector: str, rate: int, nthreads: int,
+               rep: int) -> str:
     """
     Create a test infix for the test.
 
     Parameters
     ----------
     interface : str
-        The interface to test.
+        The interface name.
+    reflector : str
+        The reflector name.
     rate : int
-        The rate to test.
+        The rate in Mbit/s.
     nthreads : int
-        The number of threads to test.
+        The number of threads.
     rep : int
-        The number of repetitions to test.
+        The number of repetitions.
     """
-    return f'{interface}_r{rate}_t{nthreads}_{rep}'
+    return f'{interface}_{reflector}_r{rate}_t{nthreads}_{rep}'
 
 
 def output_filepath(outdir: str, interface: str, rate: int, nthreads: int,
