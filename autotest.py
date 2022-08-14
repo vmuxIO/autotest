@@ -697,8 +697,8 @@ def test_infix(interface: str, reflector: str, rate: int, nthreads: int,
     return f'{interface}_{reflector}_r{rate}_t{nthreads}_{rep}'
 
 
-def output_filepath(outdir: str, interface: str, rate: int, nthreads: int,
-                    rep: int) -> str:
+def output_filepath(outdir: str, interface: str, reflector, rate: int,
+                    nthreads: int, rep: int) -> str:
     """
     Create the output filename.
 
@@ -708,6 +708,8 @@ def output_filepath(outdir: str, interface: str, rate: int, nthreads: int,
         The output directory.
     interface : str
         The interface name.
+    reflector : str
+        The reflector name.
     rate : int
         The rate in Mbit/s.
     nthreads : int
@@ -720,13 +722,13 @@ def output_filepath(outdir: str, interface: str, rate: int, nthreads: int,
     str
         The output filename.
     """
-    infix = test_infix(interface, rate, nthreads, rep)
+    infix = test_infix(interface, reflector, rate, nthreads, rep)
     filename = f'output_{infix}.log'
     return path_join(outdir, filename)
 
 
-def histogram_filepath(outdir: str, interface: str, rate: int, nthreads: int,
-                       rep: int) -> str:
+def histogram_filepath(outdir: str, interface: str, reflector: str, rate: int,
+                       nthreads: int, rep: int) -> str:
     """
     Create the histogram filename.
 
@@ -736,6 +738,8 @@ def histogram_filepath(outdir: str, interface: str, rate: int, nthreads: int,
         The output directory.
     interface : str
         The interface name.
+    reflector : str
+        The reflector name.
     rate : int
         The rate in Mbit/s.
     nthreads : int
@@ -748,7 +752,7 @@ def histogram_filepath(outdir: str, interface: str, rate: int, nthreads: int,
     str
         The histogram filename.
     """
-    infix = test_infix(interface, rate, nthreads, rep)
+    infix = test_infix(interface, reflector, rate, nthreads, rep)
     filename = f'histogram_{infix}.csv'
     return path_join(outdir, filename)
 
