@@ -729,6 +729,7 @@ class Server(ABC):
         self.tmux_kill('reflector')
 
     def start_xdp_reflector(self: 'Server', iface: str):
+        # TODO we could have the test_iface as default value here
         """
         Start the xdp reflector.
 
@@ -750,6 +751,7 @@ class Server(ABC):
         self.exec(f'sudo ip link set {iface} up')
 
     def stop_xdp_reflector(self: 'Server', iface: str):
+        # TODO we could have the test_iface as default value here
         """
         Stop the xdp reflector.
 
