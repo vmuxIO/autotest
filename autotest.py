@@ -1052,11 +1052,22 @@ def test_load_latency(
                                      f'{remote_histogram_file}')
                         loadgen.run_l2_load_latency(dut.test_iface_mac,
                                                     rate, runtime)
-                        sleep(1.1 * runtime + 5)
                     except Exception as e:
                         error(f'Failed to run test: {interface} {reflector} ' +
                               f'{rate} {nthreads} {rep} due to exception: {e}')
                         continue
+
+                    sleep(runtime + 5)
+                    try:
+                        loadgen.wait_for_success(f'ls {remote_histogram_file}')
+                    except TimeoutError:
+                        error('Waiting for histogram file to appear timed ' +
+                              f'out for test: {interface} {reflector} ' +
+                              f'{rate} {nthreads} {rep}')
+                        continue
+                    sleep(1)
+                    # TODO here a tmux_exists function would come in handy
+
                     # TODO stopping still fails when the tmux session
                     # does not exist
                     # loadgen.stop_l2_load_latency()
