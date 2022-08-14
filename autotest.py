@@ -1021,13 +1021,18 @@ def test_load_latency(
             return
 
         dut.detect_test_iface()
-        dut.bind_test_iface()
-        dut.setup_hugetlbfs()
+
+        # start the reflector
+        # dut.stop_moongen_reflector()
+        if reflector == 'xdp':
+            dut.start_xdp_reflector(dut.test_iface)
+        elif reflector == 'moongen':
+            dut.bind_test_iface()
+            dut.setup_hugetlbfs()
+            dut.start_moongen_reflector()
+        sleep(5)
 
         # run missing tests for interface one by one and download test results
-        # dut.stop_moongen_reflector()
-        dut.start_moongen_reflector()
-        sleep(5)
         for rate in rates:
             for nthreads in threads:
                 for rep in range(reps):
@@ -1064,7 +1069,12 @@ def test_load_latency(
                                                         nthreads, rep)
                     loadgen.copy_from(remote_output_file, output_file)
                     loadgen.copy_from(remote_histogram_file, histogram_file)
-        dut.stop_moongen_reflector()
+
+        # stop the reflector
+        if reflector == 'xdp':
+            dut.stop_xdp_reflector(dut.test_iface)
+        elif reflector == 'moongen':
+            dut.stop_moongen_reflector()
         # TODO try again when connection is lost
 
         # teardown interface
