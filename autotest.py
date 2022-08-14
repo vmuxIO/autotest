@@ -1011,9 +1011,15 @@ def test_load_latency(
             host.run_guest(net_type=interface, machine_type='pc',
                            root_disk=disk)
             dut = guest
-            sleep(10)
         else:
             dut = host
+
+        try:
+            dut.wait_for_connection()
+        except TimeoutError:
+            error(f'Waiting for connection to DUT {dut.fqdn} timed out.')
+            return
+
         dut.detect_test_iface()
         dut.bind_test_iface()
         dut.setup_hugetlbfs()
