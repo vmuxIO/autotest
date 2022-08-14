@@ -757,7 +757,7 @@ def histogram_filepath(outdir: str, interface: str, reflector: str, rate: int,
     return path_join(outdir, filename)
 
 
-def test_done(outdir: str, interface: str, rate: int,
+def test_done(outdir: str, interface: str, reflector: str, rate: int,
               nthreads: int, rep: int) -> bool:
     """
     Check if the test result is already available.
@@ -766,6 +766,8 @@ def test_done(outdir: str, interface: str, rate: int,
     ----------
     interface : str
         The interface to use.
+    reflector : str
+        The reflector to use.
     rate : int
         The rate to use.
     nthreads : int
@@ -780,9 +782,10 @@ def test_done(outdir: str, interface: str, rate: int,
     bool
         True if the test result is already available.
     """
-    output_file = output_filepath(outdir, interface, rate, nthreads, rep)
-    histogram_file = histogram_filepath(outdir, interface, rate, nthreads,
-                                        rep)
+    output_file = output_filepath(outdir, interface, reflector, rate, nthreads,
+                                  rep)
+    histogram_file = histogram_filepath(outdir, interface, reflector, rate,
+                                        nthreads, rep)
 
     return isfile(output_file) and isfile(histogram_file)
 
