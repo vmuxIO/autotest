@@ -1044,7 +1044,7 @@ def test_load_latency(
         # start the reflector
         # dut.stop_moongen_reflector()
         if reflector == 'xdp':
-            dut.start_xdp_reflector(dut.test_iface)
+            dut.start_xdp_reflector()
         elif reflector == 'moongen':
             dut.bind_test_iface()
             dut.setup_hugetlbfs()
@@ -1102,7 +1102,7 @@ def test_load_latency(
 
         # stop the reflector
         if reflector == 'xdp':
-            dut.stop_xdp_reflector(dut.test_iface)
+            dut.stop_xdp_reflector()
         elif reflector == 'moongen':
             dut.stop_moongen_reflector()
         # TODO try again when connection is lost
