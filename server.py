@@ -779,8 +779,7 @@ class Server(ABC):
         """
         self.tmux_kill('reflector')
 
-    def start_xdp_reflector(self: 'Server', iface: str):
-        # TODO we could have the test_iface as default value here
+    def start_xdp_reflector(self: 'Server', iface: str = None):
         """
         Start the xdp reflector.
 
@@ -797,12 +796,13 @@ class Server(ABC):
         >>> server.start_xdp_reflector('enp176s0')
         """
         refl_obj_file_path = path_join(self.xdp_reflector_dir, 'reflector.o')
+        if not iface:
+            iface = self.test_iface
         self.exec(f'sudo ip link set {iface} xdpgeneric obj ' +
                   f'{refl_obj_file_path} sec xdp')
         self.exec(f'sudo ip link set {iface} up')
 
-    def stop_xdp_reflector(self: 'Server', iface: str):
-        # TODO we could have the test_iface as default value here
+    def stop_xdp_reflector(self: 'Server', iface: str: None):
         """
         Stop the xdp reflector.
 
@@ -818,6 +818,8 @@ class Server(ABC):
         --------
         >>> server.stop_xdp_reflector('enp176s0')
         """
+        if not iface:
+            iface = self.test_iface
         self.exec(f'sudo ip link set {iface} xdpgeneric off')
 
 
