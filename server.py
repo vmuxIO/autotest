@@ -2,6 +2,8 @@ from dataclasses import dataclass, field
 from subprocess import check_output, CalledProcessError
 from socket import getfqdn
 from logging import debug, error
+from time import sleep
+from datetime import datetime
 from abc import ABC
 from os.path import join as path_join
 
@@ -404,6 +406,55 @@ class Server(ABC):
             self.__copy_local(source, destination)
         else:
             self.__scp_from(source, destination)
+
+    def wait_for_success(self: 'Server', command: str, timeout: int = 10
+                         ) -> None:
+        """
+        Wait for a command to succeed.
+
+        Parameters
+        ----------
+        command : str
+            The command to execute.
+        timeout : int
+            The timeout in seconds.
+
+        Returns
+        -------
+
+        See Also
+        --------
+        exec : Execute command on the server.
+        """
+        start = datetime.now()
+        while (datetime.now() - start).total_seconds() < timeout:
+            try:
+                self.exec(command)
+                return
+            except Exception:
+                sleep(1)
+
+        raise TimeoutError(f'Execution on {self.log_name()} of command ' +
+                           f'{command} timed out after {timeout} seconds')
+
+    def wait_for_connection(self: 'Server', timeout: int = 10
+                            ) -> None:
+        """
+        Wait for the server to be connected.
+
+        Parameters
+        ----------
+        timeout : int
+            The timeout in seconds.
+
+        Returns
+        -------
+        """
+        try:
+            self.wait_for_success('echo', timeout)
+        except TimeoutError:
+            raise TimeoutError(f'Connection attempts to {self.log_name()} ' +
+                               f'timed out after {timeout} seconds')
 
     def get_driver_for_device(self: 'Server', device_addr: str) -> str:
         """
