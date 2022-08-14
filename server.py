@@ -25,6 +25,8 @@ class Server(ABC):
         The PCI bus address of the interface to test.
     test_iface_driv : str
         The default driver of the interface to test.
+    test_iface_mac : str
+        The MAC address of the interface to test.
     moongen_dir : str
         The directory of the MoonGen installation.
     xdp_reflector_dir : str
@@ -62,6 +64,7 @@ class Server(ABC):
     test_iface_addr: str
     _test_iface_id: int = field(default=None, init=False)
     test_iface_driv: str
+    test_iface_mac: str
     moongen_dir: str
     xdp_reflector_dir: str
     localhost: bool = False
@@ -573,7 +576,38 @@ class Server(ABC):
         Returns
         -------
         """
-        self._test_iface_id = self.get_dpdk_iface_id(self.test_iface)
+        output = self.exec("for d in /sys/class/net/*; " +
+                           "do echo $(basename $d) $(cat $d/address); done")
+        debug(f"Detecting test interface on {self.fqdn}")
+
+        for line in output.splitlines():
+            iface, mac = line.split()
+            if mac != self.test_iface_mac:
+                continue
+            self.test_iface = iface
+            debug(f"Detected {self.fqdn}'s test interface: {self.test_iface}")
+
+            if not self.has_pci_bus():
+                return
+
+            self.test_iface_addr = self.get_nic_pci_address(self.test_iface)
+            self.test_iface_driv = self.get_driver_for_nic(self.test_iface)
+            return
+
+        error(f"Failed to detect {self.fqdn}'s test interface.")
+
+    def detect_test_iface(self: 'Server') -> None:
+        """
+        Detect the test interface if necessary.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        """
+        if not self.test_iface:
+            self.detect_test_iface_by_mac()
 
     def setup_hugetlbfs(self: 'Server'):
         """
@@ -719,6 +753,7 @@ class Host(Server):
                  fqdn: str,
                  test_iface: str,
                  test_iface_addr: str,
+                 test_iface_mac: str,
                  test_iface_driv: str,
                  moongen_dir: str,
                  xdp_reflector_dir: str,
@@ -734,6 +769,10 @@ class Host(Server):
             The name of the test interface.
         test_iface_addr : str
             The IP address of the test interface.
+        test_iface_mac : str
+            The MAC address of the test interface.
+        test_iface_driv : str
+            The driver of the test interface.
         moongen_dir : str
             The directory of the MoonGen installation.
         xdp_reflector_dir : str
@@ -755,8 +794,9 @@ class Host(Server):
         >>> Host('server.test.de')
         Host(fqdn='server.test.de')
         """
-        super().__init__(fqdn, test_iface, test_iface_addr, test_iface_driv,
-                         moongen_dir, xdp_reflector_dir, localhost)
+        super().__init__(fqdn, test_iface, test_iface_addr, test_iface_mac,
+                         test_iface_driv, moongen_dir, xdp_reflector_dir,
+                         localhost)
 
     def setup_admin_tap(self: 'Host'):
         """
@@ -978,6 +1018,7 @@ class Guest(Server):
                  fqdn: str,
                  test_iface: str,
                  test_iface_addr: str,
+                 test_iface_mac: str,
                  test_iface_driv: str,
                  moongen_dir: str,
                  xdp_reflector_dir: str,
@@ -993,6 +1034,10 @@ class Guest(Server):
             The name of the test interface.
         test_iface_addr : str
             The IP address of the test interface.
+        test_iface_mac : str
+            The MAC address of the test interface.
+        test_iface_driv : str
+            The driver of the test interface.
         moongen_dir : str
             The directory of the MoonGen installation.
         xdp_reflector_dir : str
@@ -1014,8 +1059,8 @@ class Guest(Server):
         >>> Guest('server.test.de')
         Guest(fqdn='server.test.de')
         """
-        super().__init__(fqdn, test_iface, test_iface_addr, test_iface_driv,
-                         moongen_dir, xdp_reflector_dir)
+        super().__init__(fqdn, test_iface, test_iface_addr, test_iface_mac,
+                         test_iface_driv, moongen_dir, xdp_reflector_dir)
 
 
 class LoadGen(Server):
@@ -1041,6 +1086,8 @@ class LoadGen(Server):
                  fqdn: str,
                  test_iface: str,
                  test_iface_addr: str,
+                 test_iface_mac: str,
+                 test_iface_driv: str,
                  moongen_dir: str,
                  xdp_reflector_dir: str = None,
                  localhost: bool = False) -> None:
@@ -1055,6 +1102,10 @@ class LoadGen(Server):
             The name of the test interface.
         test_iface_addr : str
             The IP address of the test interface.
+        test_iface_mac : str
+            The MAC address of the test interface.
+        test_iface_driv : str
+            The driver of the test interface.
         moongen_dir : str
             The directory of the MoonGen installation.
         xdp_reflector_dir : str
@@ -1076,8 +1127,9 @@ class LoadGen(Server):
         >>> LoadGen('server.test.de')
         LoadGen(fqdn='server.test.de')
         """
-        super().__init__(fqdn, test_iface, test_iface_addr, moongen_dir,
-                         xdp_reflector_dir, localhost)
+        super().__init__(fqdn, test_iface, test_iface_addr, test_iface_mac,
+                         test_iface_driv, moongen_dir, xdp_reflector_dir,
+                         localhost)
 
     def run_l2_load_latency(self: 'LoadGen',
                             mac: str,

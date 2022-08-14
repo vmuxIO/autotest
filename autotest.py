@@ -473,6 +473,7 @@ def create_servers(conf: ConfigParser,
             conf['host']['test_iface'],
             conf['host']['test_iface_addr'],
             conf['host']['test_iface_driv'],
+            conf['host']['test_iface_mac'],
             conf['host']['moongen_dir'],
             conf['host']['xdp_reflector_dir']
         )
@@ -482,6 +483,7 @@ def create_servers(conf: ConfigParser,
             conf['guest']['test_iface'],
             conf['guest']['test_iface_addr'],
             conf['guest']['test_iface_driv'],
+            conf['guest']['test_iface_mac'],
             conf['guest']['moongen_dir'],
             conf['host']['xdp_reflector_dir']
         )
@@ -491,6 +493,7 @@ def create_servers(conf: ConfigParser,
             conf['loadgen']['test_iface'],
             conf['loadgen']['test_iface_addr'],
             conf['loadgen']['test_iface_driv'],
+            conf['loadgen']['test_iface_mac'],
             conf['loadgen']['moongen_dir']
         )
     return servers
@@ -972,7 +975,7 @@ def test_load_latency(
             mac = '52:54:00:fa:00:60'
         else:
             dut = host
-            mac = '64:9d:99:b1:0b:59'
+        dut.detect_test_iface()
         dut.bind_test_iface()
         dut.setup_hugetlbfs()
 
@@ -996,7 +999,8 @@ def test_load_latency(
                     try:
                         loadgen.exec(f'rm -f {remote_output_file} ' +
                                      f'{remote_histogram_file}')
-                        loadgen.run_l2_load_latency(mac, rate, runtime)
+                        loadgen.run_l2_load_latency(dut.test_iface_mac,
+                                                    rate, runtime)
                         sleep(1.1*runtime)
                     except Exception as e:
                         error(f'Failed to run test: {interface} {rate} ' +
