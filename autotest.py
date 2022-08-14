@@ -259,6 +259,14 @@ def setup_parser() -> ArgumentParser:
                                  default='./outputs',
                                  help='Test output directory.',
                                  )
+    test_cli_parser.add_argument('-f',
+                                 '--reflector',
+                                 type=str,
+                                 choices=['xdp', 'moongen'],
+                                 default='xdp',
+                                 help='Test network interface type. ' +
+                                      'Can be pnic, brtap or macvtap.',
+                                 )
     test_cli_parser.add_argument('-L',
                                  '--loadprog',
                                  type=FileType('r'),
@@ -854,6 +862,7 @@ def test_load_latency(
     name: str,
     interfaces: list[str],
     outdir: str,
+    reflector: str,
     loadprog: str,
     reflprog: str,
     rates: list[int],
@@ -875,10 +884,12 @@ def test_load_latency(
         The interfaces to use.
     outdir : str
         The output directory.
+    reflector : str
+        The reflector to use. (xdp or moongen)
     loadprog : str
-        The load program.
+        The moongen load program.
     reflprog : str
-        The reflector program.
+        The moongen reflector program. (only used with moongen reflector)
     rates : list[int]
         The rates to use.
     threads : list[int]
@@ -893,10 +904,18 @@ def test_load_latency(
     Returns
     -------
     """
+    # some sanity checks
+    if reflector not in ['xdp', 'moongen']:
+        error(f'Unknown reflector: {reflector}')
+        return
+    # TODO once we also test the host bridge and macvtap we need to check
+    #      that only xdp is used as reflector
+
     info('Running test:')
     info(f'  name      : {name}')
     info(f'  interfaces: {interfaces}')
     info(f'  outdir    : {outdir}')
+    info(f'  reflector : {reflector}')
     info(f'  loadprog  : {loadprog}')
     info(f'  reflprog  : {reflprog}')
     info(f'  rates     : {rates}')
@@ -904,6 +923,9 @@ def test_load_latency(
     info(f'  runtime   : {runtime}')
     info(f'  reps      : {reps}')
     info(f'  accumulate: {accumulate}')
+    # TODO name is not used
+    # TODO loadprog is not used
+    # TODO reflprog is not used
 
     # check which test results are still missing
     tests_todo = {
@@ -1054,6 +1076,7 @@ def test_load_lat_file(args: Namespace, conf: ConfigParser) -> None:
             test_conf[section]['name'],
             [i.strip() for i in test_conf[section]['interfaces'].split(',')],
             test_conf[section]['outdir'],
+            test_conf[section]['reflector'],
             test_conf[section]['loadprog'],
             test_conf[section]['reflprog'],
             [int(r.strip()) for r in test_conf[section]['rates'].split(',')],
@@ -1086,6 +1109,7 @@ def test_load_lat_cli(args: Namespace, conf: ConfigParser) -> None:
         args.name,
         args.interfaces,
         args.outdir,
+        args.reflector,
         args.loadprog.name,
         args.reflprog.name,
         args.rates,
