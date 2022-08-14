@@ -972,6 +972,7 @@ def test_load_latency(
             host.run_guest(net_type=interface, machine_type='pc',
                            root_disk=disk)
             dut = guest
+            sleep(10)
         else:
             dut = host
         dut.detect_test_iface()
