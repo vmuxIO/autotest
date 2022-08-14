@@ -4,6 +4,7 @@ local device = require "device"
 local ts     = require "timestamping"
 local stats  = require "stats"
 local hist   = require "histogram"
+local timer  = require "timer"
 
 local PKT_SIZE	= 60
 -- local ETH_DST	= "52:54:00:fa:00:60"
@@ -28,6 +29,7 @@ function configure(parser)
 	parser:argument("mac", "MAC address of the destination device.")
 	parser:option("-r --rate", "Transmit rate in Mbit/s."):default(10000):convert(tonumber)
 	parser:option("-f --file", "Filename of the latency histogram."):default("histogram.csv")
+	parser:option("-t --time", "Time to transmit for in seconds."):default(60):convert(tonumber)
 end
 
 function master(args)
@@ -37,6 +39,11 @@ function master(args)
 	mg.startTask("loadSlave", dev:getTxQueue(0), dev:getMac(true), args.mac)
 	stats.startStatsTask{dev}
 	mg.startSharedTask("timerSlave", dev:getTxQueue(1), dev:getRxQueue(1), args.mac, args.file)
+	if args.time >= 0 then
+		runtime = timer:new(args.time)
+		runtime:wait()
+		mg:stop()
+	end
 	mg.waitForTasks()
 end
 
