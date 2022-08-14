@@ -1031,6 +1031,7 @@ class Host(Server):
         -------
         """
         self.release_test_iface()
+        self.stop_xdp_reflector(self.test_iface)
         self.exec('sudo ip link delete tap1 2>/dev/null || true')
         self.exec('sudo ip link delete br1 2>/dev/null || true')
         self.exec('sudo ip link delete macvtap1 2>/dev/null || true')
