@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
+from server import Server, Host, Guest, LoadGen
 
 
 class Machine(Enum):
@@ -119,6 +120,16 @@ class LoadLatencyTestGenerator(object):
                 test.run()
                 if self.accumulate:
                     test.accumulate()
+
+    def setup_interface(self, host: Host, machine: Machine,
+                        interface: Interface, bridge_mac: str = None):
+        if interface == Interface.BRIDGE:
+            if machine == Machine.HOST:
+                host.setup_test_bridge()
+            else:
+                host.setup_test_br_tap()
+        elif interface == Interface.MACVTAP:
+            host.setup_test_macvtap()
 
     def run(self):
         """
