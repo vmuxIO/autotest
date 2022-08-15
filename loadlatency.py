@@ -148,6 +148,19 @@ class LoadLatencyTestGenerator(object):
         else:
             server.stop_xdp_reflector(iface)
 
+    def run_guest(self, host: Host, machine: Machine,
+                  interface: Interface, qemu: str, vhost: bool,
+                  ioregionfd: bool):
+        host.run_guest(
+            net_type='brtap' if interface == Interface.BRIDGE else 'macvtap',
+            machine_type='pc' if machine == Machine.PCVM else 'microvm',
+            root_disk=None,
+            debug_qemu=False,
+            ioregionfd=ioregionfd,
+            qemu_build_dir=qemu,
+            vhost=vhost
+        )
+
     def run(self):
         """
         Run the generator
