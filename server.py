@@ -1045,6 +1045,7 @@ class Host(Server):
                   debug_qemu: bool = False,
                   ioregionfd: bool = False,
                   qemu_build_dir: str = None,
+                  vhost: bool = True
                   ) -> None:
         # TODO this function should get a Guest object as argument
         """
@@ -1067,6 +1068,8 @@ class Host(Server):
         qemu_build_dir : str
             Path to the Qemu build directory. Can be empty if you want to use
             the installed Qemu.
+        vhost : bool
+            True if you want to use vhost on the test interface.
 
         Returns
         -------
@@ -1076,13 +1079,15 @@ class Host(Server):
         # and compile them.
         dev_type = 'pci' if machine_type == 'pc' else 'device'
         test_net_config = (
-            ' -netdev tap,vhost=on,id=admin1,ifname=tap1,script=no,' +
+            f" -netdev tap,vhost={'on' if vhost else 'off'}," +
+            'id=admin1,ifname=tap1,script=no,' +
             'downscript=no,queues=4' +
             f' -device virtio-net-{dev_type},id=testif,netdev=admin1,' +
             'mac=52:54:00:fa:00:60,mq=on' +
             (',use-ioregionfd=true' if ioregionfd else '')
         ) if net_type == 'brtap' else (
-            ' -netdev tap,vhost=on,id=admin1,fd=3 3<>/dev/tap$(cat ' +
+            f" -netdev tap,vhost={'on' if vhost else 'off'}," +
+            'id=admin1,fd=3 3<>/dev/tap$(cat ' +
             '/sys/class/net/macvtap1/ifindex) ' +
             f' -device virtio-net-{dev_type},id=testif,' +
             'netdev=admin1,mac=$(cat ' +
