@@ -131,6 +131,23 @@ class LoadLatencyTestGenerator(object):
         elif interface == Interface.MACVTAP:
             host.setup_test_macvtap()
 
+    def start_reflector(self, server: Server, reflector: Reflector,
+                        iface: str = None):
+        if reflector == Reflector.MOONGEN:
+            server.bind_test_iface()
+            server.setup_hugetlbfs()
+            server.start_moongen_reflector()
+        else:
+            server.start_xdp_reflector(iface)
+        sleep(5)
+
+    def stop_reflector(self, server: Server, reflector: Reflector,
+                       iface: str = None):
+        if reflector == Reflector.MOONGEN:
+            server.stop_moongen_reflector()
+        else:
+            server.stop_xdp_reflector(iface)
+
     def run(self):
         """
         Run the generator
