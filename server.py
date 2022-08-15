@@ -1044,6 +1044,7 @@ class Host(Server):
                   root_disk: str = None,
                   debug_qemu: bool = False,
                   ioregionfd: bool = False,
+                  qemu_build_dir: str = None,
                   ) -> None:
         # TODO this function should get a Guest object as argument
         """
@@ -1063,6 +1064,9 @@ class Host(Server):
         ioregionfd : bool
             True if you want to use the IORegionFD enhanced virtio_net_device
             for the test interface.
+        qemu_build_dir : str
+            Path to the Qemu build directory. Can be empty if you want to use
+            the installed Qemu.
 
         Returns
         -------
@@ -1085,13 +1089,16 @@ class Host(Server):
             '/sys/class/net/macvtap1/address)' +
             (',use-ioregionfd=true' if ioregionfd else '')
         )
+        qemu_bin_path = 'qemu-system-x86_64'
+        if qemu_build_dir:
+            qemu_bin_path = path_join(qemu_build_dir, qemu_bin_path)
         disk_path = self.guest_root_disk_path
         if root_disk:
             disk_path = root_disk
         self.tmux_new(
             'qemu',
             ('gdbserver 0.0.0.0:1234 ' if debug_qemu else '') +
-            'qemu-system-x86_64' +
+            qemu_bin_path +
             f' -machine {machine_type}' +
             ' -cpu host' +
             ' -smp 4' +
