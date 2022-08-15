@@ -708,7 +708,7 @@ class Server(ABC):
         """
         Get the PCI address for a network interface.
 
-        Note that this does not work once the NIC is bould to DPDK.
+        Note that this does not work once the NIC is bound to DPDK.
 
         Parameters
         ----------
