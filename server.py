@@ -65,8 +65,8 @@ class Server(ABC):
     test_iface: str
     test_iface_addr: str
     _test_iface_id: int = field(default=None, init=False)
-    test_iface_driv: str
     test_iface_mac: str
+    test_iface_driv: str
     moongen_dir: str
     xdp_reflector_dir: str
     localhost: bool = False
