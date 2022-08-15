@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 
 
@@ -53,7 +53,7 @@ class LoadLatencyTest(object):
     reflector: Reflector
     rate: int
     runtime: int
-    repetition: int
+    repetitions: int
     outputdir: str
 
     def __str__(self):
@@ -66,8 +66,18 @@ class LoadLatencyTest(object):
                 f"reflector={self.reflector.value}, " +
                 f"rate={self.rate}, " +
                 f"runtime={self.runtime}, " +
-                f"repetition={self.repetition}, " +
+                f"repetition={self.repetitions}, " +
                 f"outputdir={self.outputdir})")
+
+    def run(self):
+        print(f"run test {self}")
+        for repetition in range(self.repetitions):
+            # here we check if test repetition already done
+            # run test repetition
+            pass
+
+    def accumulate(self):
+        pass
 
 
 @dataclass
@@ -87,6 +97,29 @@ class LoadLatencyTestGenerator(object):
     accumulate: bool
     outputdir: str
 
+    def run_interface_tests(self, machine, interface, qemu, vhost, ioregionfd,
+                            reflector):
+        """
+        Run tests for the given interface
+        """
+        for rate in self.rates:
+            for runtime in self.runtimes:
+                test = LoadLatencyTest(
+                    machine=machine,
+                    interface=interface,
+                    qemu=qemu,
+                    vhost=vhost,
+                    ioregionfd=ioregionfd,
+                    reflector=reflector,
+                    rate=rate,
+                    runtime=runtime,
+                    repetitions=self.repetitions,
+                    outputdir=self.outputdir,
+                )
+                test.run()
+                if self.accumulate:
+                    test.accumulate()
+
     def run(self):
         """
         Run the generator
@@ -103,24 +136,14 @@ class LoadLatencyTestGenerator(object):
                             reflector == Reflector.MOONGEN):
                         continue
                     print("start reflector")
-                    for rate in self.rates:
-                        for runtime in self.runtimes:
-                            for repetition in range(self.repetitions):
-                                test = LoadLatencyTest(
-                                    machine=machine,
-                                    interface=interface,
-                                    qemu=qemu,
-                                    vhost=vhost,
-                                    ioregionfd=ioregionfd,
-                                    reflector=reflector,
-                                    rate=rate,
-                                    runtime=runtime,
-                                    repetition=repetition,
-                                    outputdir=self.outputdir,
-                                )
-                                # here we check if test already done
-                                print(f"run test {test}")
-                            # here we accumulate
+                    self.run_interface_tests(
+                        machine=machine,
+                        interface=interface,
+                        qemu=qemu,
+                        vhost=vhost,
+                        ioregionfd=ioregionfd,
+                        reflector=reflector
+                    )
                     print("stop reflector")
                 print("teardown interface")
 
@@ -135,26 +158,14 @@ class LoadLatencyTestGenerator(object):
                             print("run guest")
                             for reflector in self.reflectors:
                                 print("start reflector")
-                                for rate in self.rates:
-                                    for runtime in self.runtimes:
-                                        for repetition in range(
-                                                self.repetitions):
-                                            test = LoadLatencyTest(
-                                                machine=machine,
-                                                interface=interface,
-                                                qemu=qemu,
-                                                vhost=vhost,
-                                                ioregionfd=ioregionfd,
-                                                reflector=reflector,
-                                                rate=rate,
-                                                runtime=runtime,
-                                                repetition=repetition,
-                                                outputdir=self.outputdir,
-                                            )
-                                            # here we check if test already
-                                            # done
-                                            print(f"run test {test}")
-                                        # here we accumulate
+                                self.run_interface_tests(
+                                    machine=machine,
+                                    interface=interface,
+                                    qemu=qemu,
+                                    vhost=vhost,
+                                    ioregionfd=ioregionfd,
+                                    reflector=reflector
+                                )
                                 print("stop reflector")
                             print("kill guest")
                 print("teardown host interface")
