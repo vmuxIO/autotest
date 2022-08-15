@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
+from logging import error, info, debug
+
 from server import Server, Host, Guest, LoadGen
 
 
@@ -57,6 +59,11 @@ class LoadLatencyTest(object):
     repetitions: int
     outputdir: str
 
+    # TODO port the function test_infix
+    # TODO port the function output_filepath
+    # TODO port the function histogram_filepath
+    # TODO port the function test_done
+
     def __str__(self):
         return ("LoadLatencyTest(" +
                 f"machine={self.machine.value}, " +
@@ -67,17 +74,21 @@ class LoadLatencyTest(object):
                 f"reflector={self.reflector.value}, " +
                 f"rate={self.rate}, " +
                 f"runtime={self.runtime}, " +
-                f"repetition={self.repetitions}, " +
+                f"repetitions={self.repetitions}, " +
                 f"outputdir={self.outputdir})")
 
-    def run(self):
-        print(f"run test {self}")
+    def run(self, loadgen: LoadGen):
+        debug(f"run test {self}")
         for repetition in range(self.repetitions):
+            debug(f'repetition {repetition}')
             # here we check if test repetition already done
             # run test repetition
+            # TODO port the loop body from test_load_latency
+            # also wait until done and download files
             pass
 
     def accumulate(self):
+        # TODO port the function accumulate_histograms
         pass
 
 
