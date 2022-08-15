@@ -866,6 +866,10 @@ class Host(Server):
             The MAC address of the test interface.
         test_iface_driv : str
             The driver of the test interface.
+        guest_root_disk_path : str
+            The path to the root disk of the guest.
+        guest_test_iface_mac : str
+            The MAC address of the guest test interface.
         moongen_dir : str
             The directory of the MoonGen installation.
         xdp_reflector_dir : str
@@ -975,7 +979,8 @@ class Host(Server):
         self.exec('sudo ip link show macvtap1 2>/dev/null' +
                   ' || sudo ip link add link enp176s0 name macvtap1' +
                   ' type macvtap')
-        self.exec('sudo ip link set macvtap1 address 52:54:00:fa:00:60 up')
+        self.exec('sudo ip link set macvtap1 address ' +
+                  f'{self.guest_test_iface_mac} up')
         self.exec('sudo ip link set enp176s0 up')
         self.exec('sudo chmod 666' +
                   ' /dev/tap$(cat /sys/class/net/macvtap1/ifindex)')

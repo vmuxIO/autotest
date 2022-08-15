@@ -501,6 +501,8 @@ def create_servers(conf: ConfigParser,
             conf['host']['test_iface_addr'],
             conf['host']['test_iface_mac'],
             conf['host']['test_iface_driv'],
+            conf['guest']['test_iface_mac'],
+            conf['guest']['root_disk_file'],
             conf['host']['moongen_dir'],
             conf['host']['xdp_reflector_dir']
         )
@@ -591,7 +593,7 @@ def run_guest(args: Namespace, conf: ConfigParser) -> None:
         else:
             host.setup_test_macvtap()
 
-        disk = args.disk if args.disk else conf['guest']['root_disk_file']
+        disk = args.disk if args.disk else None
 
         host.run_guest(args.interface, args.machine, disk, args.debug,
                        args.ioregionfd)
