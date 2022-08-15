@@ -1043,7 +1043,7 @@ class Host(Server):
                   machine_type: str,
                   root_disk: str = None,
                   debug_qemu: bool = False,
-                  use_ioregionfd: bool = False
+                  ioregionfd: bool = False,
                   ) -> None:
         # TODO this function should get a Guest object as argument
         """
@@ -1060,7 +1060,7 @@ class Host(Server):
         debug_qemu : bool
             True if you want to attach GDB to Qemu. The GDB server will
             be bound to port 1234.
-        use_ioregionfd : bool
+        ioregionfd : bool
             True if you want to use the IORegionFD enhanced virtio_net_device
             for the test interface.
 
@@ -1076,14 +1076,14 @@ class Host(Server):
             'downscript=no,queues=4' +
             f' -device virtio-net-{dev_type},id=testif,netdev=admin1,' +
             'mac=52:54:00:fa:00:60,mq=on' +
-            (',use-ioregionfd=true' if use_ioregionfd else '')
+            (',use-ioregionfd=true' if ioregionfd else '')
         ) if net_type == 'brtap' else (
             ' -netdev tap,vhost=on,id=admin1,fd=3 3<>/dev/tap$(cat ' +
             '/sys/class/net/macvtap1/ifindex) ' +
             f' -device virtio-net-{dev_type},id=testif,' +
             'netdev=admin1,mac=$(cat ' +
             '/sys/class/net/macvtap1/address)' +
-            (',use-ioregionfd=true' if use_ioregionfd else '')
+            (',use-ioregionfd=true' if ioregionfd else '')
         )
         disk_path = self.guest_root_disk_path
         if root_disk:
