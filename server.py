@@ -1041,7 +1041,7 @@ class Host(Server):
     def run_guest(self: 'Host',
                   net_type: str,
                   machine_type: str,
-                  root_disk: str,
+                  root_disk: str = None,
                   debug_qemu: bool = False,
                   use_ioregionfd: bool = False
                   ) -> None:
@@ -1085,6 +1085,9 @@ class Host(Server):
             '/sys/class/net/macvtap1/address)' +
             (',use-ioregionfd=true' if use_ioregionfd else '')
         )
+        disk_path = self.guest_root_disk_path
+        if root_disk:
+            disk_path = root_disk
         self.tmux_new(
             'qemu',
             ('gdbserver 0.0.0.0:1234 ' if debug_qemu else '') +
@@ -1094,7 +1097,7 @@ class Host(Server):
             ' -smp 4' +
             ' -m 4096' +
             ' -enable-kvm' +
-            f' -drive id=root,format=raw,file={root_disk},if=none,' +
+            f' -drive id=root,format=raw,file={disk_path},if=none,' +
             'cache=none' +
             f' -device virtio-blk-{dev_type},id=rootdisk,drive=root' +
             ' -cdrom /home/networkadmin/images/guest_init.iso' +
