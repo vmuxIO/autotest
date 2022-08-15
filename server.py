@@ -802,7 +802,7 @@ class Server(ABC):
                   f'{refl_obj_file_path} sec xdp')
         self.exec(f'sudo ip link set {iface} up')
 
-    def stop_xdp_reflector(self: 'Server', iface: str: None):
+    def stop_xdp_reflector(self: 'Server', iface: str = None):
         """
         Stop the xdp reflector.
 
@@ -841,6 +841,8 @@ class Host(Server):
     >>> Host('server.test.de')
     Host(fqdn='server.test.de')
     """
+    guest_test_iface_mac: str
+    guest_root_disk_path: str
 
     def __init__(self: 'Host',
                  fqdn: str,
@@ -848,6 +850,8 @@ class Host(Server):
                  test_iface_addr: str,
                  test_iface_mac: str,
                  test_iface_driv: str,
+                 guest_root_disk_path: str,
+                 guest_test_iface_mac: str,
                  moongen_dir: str,
                  xdp_reflector_dir: str,
                  localhost: bool = False) -> None:
