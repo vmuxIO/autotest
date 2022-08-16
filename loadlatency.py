@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
 from logging import error, info, debug
+from time import sleep
 
 from server import Server, Host, Guest, LoadGen
 
@@ -173,23 +174,61 @@ class LoadLatencyTestGenerator(object):
             vhost=vhost
         )
 
-    def run(self):
+    def run(self, host: Host, guest: Guest, loadgen: LoadGen):
         """
         Run the generator
         """
+
+        info('Running test generator:')
+        info(f'  machines   : {set(m.value for m in self.machines)}')
+        info(f'  interfaces : {set(i.value for i in self.interfaces)}')
+        info(f'  qemus      : {self.qemus}')
+        info(f'  vhosts     : {self.vhosts}')
+        info(f'  ioregionfds: {self.ioregionfds}')
+        info(f'  reflectors : {set(r.value for r in self.reflectors)}')
+        info(f'  rates      : {self.rates}')
+        info(f'  runtimes   : {self.runtimes}')
+        info(f'  repetitions: {self.repetitions}')
+        info(f'  accumulate : {self.accumulate}')
+        info(f'  outputdir  : {self.outputdir}')
+        # TODO Qemus should contain strings like
+        #   normal:/home/networkadmin/qemu-build
+        #   replace-ioeventfd:/home/networkadmin/qemu-build-2
+        # Empty path is also possible.
+        # Before the : is the name, this goes to the test runner.
+        # The rest is the path to the qemu build directory and just used here
+        # to start the guest.
+        # In case no name is given, we could number them.
+
+        debug("initial cleanup")
+        try:
+            host.kill_guest()
+        except Exception:
+            pass
+        host.cleanup_network()
+
         if Machine.HOST in self.machines:
+            info("Running host tests")
             machine = Machine.HOST
             qemu = None
             vhost = None
             ioregionfd = None
+
             for interface in self.interfaces:
-                print("setup interface")
+                debug(f"setup host interface {interface.value}")
+                host.detect_test_iface()
+                self.setup_interface(host, machine, interface)
+
                 for reflector in self.reflectors:
                     if (interface != Interface.PNIC and
                             reflector == Reflector.MOONGEN):
                         continue
-                    print("start reflector")
+
+                    debug(f"start reflector {reflector.value}")
+                    self.start_reflector(host, reflector)
+
                     self.run_interface_tests(
+                        loadgen=loadgen,
                         machine=machine,
                         interface=interface,
                         qemu=qemu,
@@ -197,21 +236,49 @@ class LoadLatencyTestGenerator(object):
                         ioregionfd=ioregionfd,
                         reflector=reflector
                     )
-                    print("stop reflector")
-                print("teardown interface")
+
+                    debug(f"stop reflector {reflector.value}")
+                    self.stop_reflector(host, reflector)
+
+                debug(f"teardown host interface {interface.value}")
+                host.cleanup_network()
 
         for machine in self.machines - {Machine.HOST}:
+            info(f"Running {machine.value} guest tests")
+
             for interface in self.interfaces - {Interface.PNIC}:
-                print("setup host interface")
+                debug(f"setup guest interface {interface.value}")
+                self.setup_interface(host, machine, interface)
+
                 for qemu in self.qemus:
                     for vhost in self.vhosts:
                         for ioregionfd in self.ioregionfds:
                             if ioregionfd and machine != Machine.MICROVM:
                                 continue
-                            print("run guest")
+
+                            debug(f"run guest {machine.value} " +
+                                  f"{interface.value} {qemu} {vhost} " +
+                                  f"{ioregionfd}")
+                            self.run_guest(host, guest, machine, interface,
+                                           qemu, vhost, ioregionfd)
+
+                            debug("wait for guest connectability")
+                            try:
+                                guest.wait_for_connection()
+                            except TimeoutError:
+                                error('Waiting for connection to guest ' +
+                                      'timed out.')
+                                return
+
+                            debug("detect guest test interface")
+                            guest.detect_test_iface()
+
                             for reflector in self.reflectors:
-                                print("start reflector")
+                                debug(f"start reflector {reflector.value}")
+                                self.start_reflector(guest, reflector)
+
                                 self.run_interface_tests(
+                                    loadgen=loadgen,
                                     machine=machine,
                                     interface=interface,
                                     qemu=qemu,
@@ -219,9 +286,17 @@ class LoadLatencyTestGenerator(object):
                                     ioregionfd=ioregionfd,
                                     reflector=reflector
                                 )
-                                print("stop reflector")
-                            print("kill guest")
-                print("teardown host interface")
+
+                                debug(f"stop reflector {reflector.value}")
+                                self.stop_reflector(guest, reflector)
+
+                            debug(f"kill guest {machine.value} " +
+                                  f"{interface.value} {qemu} {vhost} " +
+                                  f"{ioregionfd}")
+                            host.kill_guest()
+
+                debug(f"teardown guest interface {interface.value}")
+                host.cleanup_network()
 
 
 if __name__ == "__main__":
