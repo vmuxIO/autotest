@@ -273,6 +273,84 @@ class LoadLatencyTestGenerator(object):
             vhost=vhost
         )
 
+    def create_interface_test_tree(self, machine: Machine,
+                                   interface: Interface, qemu: str,
+                                   vhost: bool, ioregionfd: bool,
+                                   reflector: Reflector):
+        tree = {}
+        for rate in self.rates:
+            tree[rate] = {}
+            for runtime in self.runtimes:
+                test = LoadLatencyTest(
+                    machine=machine,
+                    interface=interface,
+                    mac=None,
+                    qemu=qemu,
+                    vhost=vhost,
+                    ioregionfd=ioregionfd,
+                    reflector=reflector,
+                    rate=rate,
+                    runtime=runtime,
+                    repetitions=self.repetitions,
+                    outputdir=self.outputdir,
+                )
+                tree[rate][runtime] = test
+        return tree
+
+    def create_test_tree(self):
+        tree = {}
+        # host part
+        if Machine.HOST in self.machines:
+            m = Machine.HOST
+            q = None
+            v = None
+            io = None
+            tree[m] = {}
+            for i in self.interfaces:
+                tree[m][i] = {}
+                for r in self.reflectors:
+                    if (i != Interface.PNIC and
+                            r == Reflector.MOONGEN):
+                        continue
+                    tree[m][i][q] = {}
+                    tree[m][i][q][v] = {}
+                    tree[m][i][q][v][io] = {}
+                    tree[m][i][q][v][io][r] = \
+                        self.create_interface_test_tree(
+                            machine=m,
+                            interface=i,
+                            qemu=q,
+                            vhost=v,
+                            ioregionfd=io,
+                            reflector=r
+                        )
+        # vm part
+        for m in self.machines - {Machine.HOST}:
+            tree[m] = {}
+            for i in self.interfaces - {Interface.PNIC}:
+                tree[m][i] = {}
+                for qemu in self.qemus:
+                    q, _ = qemu.split(':')
+                    tree[m][i][q] = {}
+                    for v in self.vhosts:
+                        tree[m][i][q][v] = {}
+                        for io in self.ioregionfds:
+                            if io and m != Machine.MICROVM:
+                                continue
+                            tree[m][i][q][v][io] = {}
+                            for r in self.reflectors:
+                                tree[m][i][q][v][io][r] = \
+                                    self.create_interface_test_tree(
+                                        machine=m,
+                                        interface=i,
+                                        qemu=q,
+                                        vhost=v,
+                                        ioregionfd=io,
+                                        reflector=r
+                                    )
+
+        return tree
+
     def run(self, host: Host, guest: Guest, loadgen: LoadGen):
         """
         Run the generator
