@@ -51,6 +51,7 @@ class LoadLatencyTest(object):
     """
     machine: Machine
     interface: Interface
+    mac: str
     qemu: str
     vhost: bool
     ioregionfd: bool
@@ -98,6 +99,7 @@ class LoadLatencyTest(object):
         return ("LoadLatencyTest(" +
                 f"machine={self.machine.value}, " +
                 f"interface={self.interface.value}, " +
+                f"mac={self.mac}, " +
                 f"qemu={self.qemu}, " +
                 f"vhost={self.vhost}, " +
                 f"ioregionfd={self.ioregionfd}, " +
