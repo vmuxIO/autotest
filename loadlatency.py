@@ -109,8 +109,9 @@ class LoadLatencyTestGenerator(object):
     accumulate: bool
     outputdir: str
 
-    def run_interface_tests(self, machine, interface, qemu, vhost, ioregionfd,
-                            reflector):
+    def run_interface_tests(self, loadgen: LoadGen, machine: Machine,
+                            interface: Interface, qemu: str, vhost: bool,
+                            ioregionfd: bool, reflector: Reflector):
         """
         Run tests for the given interface
         """
@@ -128,7 +129,7 @@ class LoadLatencyTestGenerator(object):
                     repetitions=self.repetitions,
                     outputdir=self.outputdir,
                 )
-                test.run()
+                test.run(loadgen)
                 if self.accumulate:
                     test.accumulate()
 
