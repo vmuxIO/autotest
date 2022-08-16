@@ -360,7 +360,7 @@ class LoadLatencyTestGenerator(object):
                             debug(f"run guest {machine.value} " +
                                   f"{interface.value} {qemu_name} {vhost} " +
                                   f"{ioregionfd}")
-                            self.run_guest(host, guest, machine, interface,
+                            self.run_guest(host, machine, interface,
                                            qemu_path, vhost, ioregionfd)
 
                             debug("wait for guest connectability")
