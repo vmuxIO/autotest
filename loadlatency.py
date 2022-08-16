@@ -250,6 +250,7 @@ class LoadLatencyTestGenerator(object):
                        iface: str = None):
         if reflector == Reflector.MOONGEN:
             server.stop_moongen_reflector()
+            server.release_test_iface()
         else:
             server.stop_xdp_reflector(iface)
 
