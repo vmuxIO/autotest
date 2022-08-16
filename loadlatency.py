@@ -229,6 +229,8 @@ class LoadLatencyTestGenerator(object):
                 )
                 test.run(loadgen)
                 if self.accumulate:
+                    # TODO we probably need to put this somewhere else to
+                    # make sure it runs even if the tests are already done
                     test.accumulate()
 
     def setup_interface(self, host: Host, machine: Machine,
