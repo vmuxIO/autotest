@@ -349,6 +349,8 @@ class LoadLatencyTestGenerator(object):
 
                 for qemu in self.qemus:
                     qemu_name, qemu_path = qemu.split(':')
+                    # TODO make sure the qemu_path exists and qemu is
+                    # executable
 
                     for vhost in self.vhosts:
                         for ioregionfd in self.ioregionfds:
