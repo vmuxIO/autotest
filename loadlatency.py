@@ -151,8 +151,34 @@ class LoadLatencyTest(object):
                               self.histogram_filepath(repetition))
 
     def accumulate(self):
-        # TODO port the function accumulate_histograms
-        pass
+        assert self.repetitions > 0, 'Reps must be greater than 0.'
+        if self.repetitions == 1:
+            debug('Skipping accumulation, there is only one repetition.')
+            return
+
+        acc_hist_filename = f'acc_histogram_{self.test_infix()}.csv'
+        acc_hist_filepath = path_join(self.output_filepath, acc_hist_filename)
+        if isfile(acc_hist_filepath):
+            debug('Skipping accumulation, already done.')
+            return
+
+        info("Accumulating histograms.")
+        histogram = {}
+        for repetition in self.repetitions:
+            assert self.test_done(repetition), 'Test not done yet'
+
+            with open(self.histogram_filepath(repetition), 'r') as f:
+                for line in f:
+                    if line.startswith('#'):
+                        continue
+                    key, value = [int(n) for n in line.split(',')]
+                    if key not in histogram:
+                        histogram[key] = 0
+                    histogram[key] += value
+
+        with open(acc_hist_filepath, 'w') as f:
+            for key, value in histogram.items():
+                f.write(f'{key},{value}\n')
 
 
 @dataclass
