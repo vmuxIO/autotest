@@ -1019,7 +1019,7 @@ class Host(Server):
         self.exec('sudo ip link show br1 2>/dev/null || sudo brctl addbr br1')
 
         # set bridge's MAC address
-        self.exec('sudo ip link br1 down && ' +
+        self.exec('sudo ip link set br1 down && ' +
                   f'sudo ip link set br1 address {self.guest_test_iface_mac}')
 
         # add tap device and physical nic to bridge
