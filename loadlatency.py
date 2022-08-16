@@ -226,6 +226,8 @@ class LoadLatencyTestGenerator(object):
 
     def setup_interface(self, host: Host, machine: Machine,
                         interface: Interface, bridge_mac: str = None):
+        if machine != Machine.HOST:
+            host.setup_admin_tap()
         if interface == Interface.BRIDGE:
             if machine == Machine.HOST:
                 host.setup_test_bridge()
