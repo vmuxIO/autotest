@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from logging import error, info, debug
 from time import sleep
@@ -205,6 +205,25 @@ class LoadLatencyTestGenerator(object):
     accumulate: bool
     outputdir: str
 
+    full_test_tree: dict = field(init=False, repr=False, default=None)
+    todo_test_tree: dict = field(init=False, repr=False, default=None)
+
+    def __post_init__(self):
+        info('Running test generator:')
+        info(f'  machines   : {set(m.value for m in self.machines)}')
+        info(f'  interfaces : {set(i.value for i in self.interfaces)}')
+        info(f'  qemus      : {self.qemus}')
+        info(f'  vhosts     : {self.vhosts}')
+        info(f'  ioregionfds: {self.ioregionfds}')
+        info(f'  reflectors : {set(r.value for r in self.reflectors)}')
+        info(f'  rates      : {self.rates}')
+        info(f'  runtimes   : {self.runtimes}')
+        info(f'  repetitions: {self.repetitions}')
+        info(f'  accumulate : {self.accumulate}')
+        info(f'  outputdir  : {self.outputdir}')
+        self.full_test_tree = self.create_test_tree()
+        self.todo_test_tree = self.create_needed_test_tree(self.full_test_tree)
+
     def run_interface_tests(self, loadgen: LoadGen, machine: Machine,
                             interface: Interface, mac: str, qemu: str,
                             vhost: bool, ioregionfd: bool,
@@ -302,6 +321,7 @@ class LoadLatencyTestGenerator(object):
 
     def create_test_tree(self):
         tree = {}
+        count = 0
         # host part
         if Machine.HOST in self.machines:
             m = Machine.HOST
@@ -327,6 +347,7 @@ class LoadLatencyTestGenerator(object):
                             ioregionfd=io,
                             reflector=r
                         )
+                    count += 1
         # vm part
         for m in self.machines - {Machine.HOST}:
             tree[m] = {}
@@ -351,13 +372,14 @@ class LoadLatencyTestGenerator(object):
                                         ioregionfd=io,
                                         reflector=r
                                     )
-
+                                count += 1
+        info(f'Generated {count} tests')
         return tree
 
-    def create_needed_test_tree(self):
-        tree = self.create_test_tree()
-        needed = deepcopy(tree)
-        for m, mtree in tree.items():
+    def create_needed_test_tree(self, test_tree: dict):
+        needed = deepcopy(test_tree)
+        count = 0
+        for m, mtree in test_tree.items():
             for i, itree in mtree.items():
                 for q, qtree in itree.items():
                     for v, vtree in qtree.items():
@@ -367,6 +389,8 @@ class LoadLatencyTestGenerator(object):
                                     for t, test in dtree.items():
                                         if not test.needed():
                                             del(needed[m][i][q][v][f][r][d][t])
+                                        else:
+                                            count += 1
                                     if not needed[m][i][q][v][f][r][d]:
                                         del(needed[m][i][q][v][f][r][d])
                                 if not needed[m][i][q][v][f][r]:
@@ -381,25 +405,13 @@ class LoadLatencyTestGenerator(object):
                     del(needed[m][i])
             if not needed[m]:
                 del(needed[m])
+        info(f'{count} tests are not done yet')
         return needed
 
     def run(self, host: Host, guest: Guest, loadgen: LoadGen):
         """
-        Run the generator
+        Run the tests
         """
-
-        info('Running test generator:')
-        info(f'  machines   : {set(m.value for m in self.machines)}')
-        info(f'  interfaces : {set(i.value for i in self.interfaces)}')
-        info(f'  qemus      : {self.qemus}')
-        info(f'  vhosts     : {self.vhosts}')
-        info(f'  ioregionfds: {self.ioregionfds}')
-        info(f'  reflectors : {set(r.value for r in self.reflectors)}')
-        info(f'  rates      : {self.rates}')
-        info(f'  runtimes   : {self.runtimes}')
-        info(f'  repetitions: {self.repetitions}')
-        info(f'  accumulate : {self.accumulate}')
-        info(f'  outputdir  : {self.outputdir}')
         # TODO Qemus should contain strings like
         #   normal:/home/networkadmin/qemu-build
         #   replace-ioeventfd:/home/networkadmin/qemu-build-2
