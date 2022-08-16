@@ -689,7 +689,8 @@ class Server(ABC):
         Returns
         -------
         """
-        if not self.test_iface:
+        if not (self.test_iface and self.test_iface_addr
+                and self.test_iface_driv):
             self.detect_test_iface_by_mac()
 
     def setup_hugetlbfs(self: 'Server'):
