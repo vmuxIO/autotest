@@ -76,8 +76,18 @@ class LoadLatencyTest(object):
                 f"_{self.runtime}s"
             )
 
-    # TODO port the function output_filepath
-    # TODO port the function histogram_filepath
+    def output_filepath(self, repetition: int):
+        return path_join(
+            self.outputdir,
+            f"output_{self.test_infix()}_{repetition}.log"
+        )
+
+    def histogram_filepath(self, repetition: int):
+        return path_join(
+            self.outputdir,
+            f"histogram_{self.test_infix()}_{repetition}.csv"
+        )
+
     # TODO port the function test_done
 
     def __str__(self):
