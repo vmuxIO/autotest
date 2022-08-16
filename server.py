@@ -898,6 +898,8 @@ class Host(Server):
         super().__init__(fqdn, test_iface, test_iface_addr, test_iface_mac,
                          test_iface_driv, moongen_dir, xdp_reflector_dir,
                          localhost)
+        self.guest_test_iface_mac = guest_test_iface_mac
+        self.guest_root_disk_path = guest_root_disk_path
 
     def setup_admin_tap(self: 'Host'):
         """
