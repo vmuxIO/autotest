@@ -140,8 +140,9 @@ class LoadLatencyTestGenerator(object):
     outputdir: str
 
     def run_interface_tests(self, loadgen: LoadGen, machine: Machine,
-                            interface: Interface, qemu: str, vhost: bool,
-                            ioregionfd: bool, reflector: Reflector):
+                            interface: Interface, mac: str, qemu: str,
+                            vhost: bool, ioregionfd: bool,
+                            reflector: Reflector):
         """
         Run tests for the given interface
         """
@@ -150,6 +151,7 @@ class LoadLatencyTestGenerator(object):
                 test = LoadLatencyTest(
                     machine=machine,
                     interface=interface,
+                    mac=mac,
                     qemu=qemu,
                     vhost=vhost,
                     ioregionfd=ioregionfd,
@@ -256,10 +258,13 @@ class LoadLatencyTestGenerator(object):
                     debug(f"start reflector {reflector.value}")
                     self.start_reflector(host, reflector)
 
+                    mac = host.test_iface_mac if interface == Interface.PNIC \
+                        else host.guest_test_iface_mac
                     self.run_interface_tests(
                         loadgen=loadgen,
                         machine=machine,
                         interface=interface,
+                        mac=mac,
                         qemu=qemu,
                         vhost=vhost,
                         ioregionfd=ioregionfd,
@@ -310,6 +315,7 @@ class LoadLatencyTestGenerator(object):
                                     loadgen=loadgen,
                                     machine=machine,
                                     interface=interface,
+                                    mac=guest.test_iface_mac,
                                     qemu=qemu,
                                     vhost=vhost,
                                     ioregionfd=ioregionfd,
