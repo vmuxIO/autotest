@@ -290,7 +290,7 @@ class LoadLatencyTestGenerator(object):
         # to start the guest.
         # In case no name is given, we could number them.
 
-        debug("initial cleanup")
+        debug('Initial cleanup')
         try:
             host.kill_guest()
         except Exception:
