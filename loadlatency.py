@@ -164,7 +164,7 @@ class LoadLatencyTest(object):
 
         info("Accumulating histograms.")
         histogram = {}
-        for repetition in self.repetitions:
+        for repetition in range(self.repetitions):
             assert self.test_done(repetition), 'Test not done yet'
 
             with open(self.histogram_filepath(repetition), 'r') as f:
