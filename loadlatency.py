@@ -96,6 +96,12 @@ class LoadLatencyTest(object):
 
         return isfile(output_file) and isfile(histogram_file)
 
+    def needed(self):
+        for repetition in range(self.repetitions):
+            if self.test_done(repetition):
+                return False
+        return True
+
     def __str__(self):
         return ("LoadLatencyTest(" +
                 f"machine={self.machine.value}, " +
