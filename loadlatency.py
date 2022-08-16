@@ -88,7 +88,11 @@ class LoadLatencyTest(object):
             f"histogram_{self.test_infix()}_{repetition}.csv"
         )
 
-    # TODO port the function test_done
+    def test_done(self, repetition: int):
+        output_file = self.output_filepath(repetition)
+        histogram_file = self.histogram_filepath(repetition)
+
+        return isfile(output_file) and isfile(histogram_file)
 
     def __str__(self):
         return ("LoadLatencyTest(" +
