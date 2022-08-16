@@ -81,13 +81,13 @@ class LoadLatencyTest(object):
     def output_filepath(self, repetition: int):
         return path_join(
             self.outputdir,
-            f"output_{self.test_infix()}_{repetition}.log"
+            f"output_{self.test_infix()}_rep{repetition}.log"
         )
 
     def histogram_filepath(self, repetition: int):
         return path_join(
             self.outputdir,
-            f"histogram_{self.test_infix()}_{repetition}.csv"
+            f"histogram_{self.test_infix()}_rep{repetition}.csv"
         )
 
     def test_done(self, repetition: int):
