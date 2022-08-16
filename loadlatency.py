@@ -111,7 +111,7 @@ class LoadLatencyTest(object):
                 f"outputdir={self.outputdir})")
 
     def run(self, loadgen: LoadGen):
-        debug(f"Running test {self}")
+        info(f"Running test {self}")
         for repetition in range(self.repetitions):
             if self.test_done(repetition):
                 debug(f"Skipping repetition {repetition}, already done")
