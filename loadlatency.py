@@ -3,6 +3,7 @@ from enum import Enum
 from logging import error, info, debug
 from time import sleep
 from os.path import isfile, join as path_join
+from copy import deepcopy
 
 from server import Server, Host, Guest, LoadGen
 
@@ -350,6 +351,35 @@ class LoadLatencyTestGenerator(object):
                                     )
 
         return tree
+
+    def create_needed_test_tree(self):
+        tree = self.create_test_tree()
+        needed = deepcopy(tree)
+        for m, mtree in tree.items():
+            for i, itree in mtree.items():
+                for q, qtree in itree.items():
+                    for v, vtree in qtree.items():
+                        for f, ftree in vtree.items():
+                            for r, rtree in ftree.items():
+                                for d, dtree in rtree.items():
+                                    for t, test in dtree.items():
+                                        if not test.needed():
+                                            del(needed[m][i][q][v][f][r][d][t])
+                                    if not needed[m][i][q][v][f][r][d]:
+                                        del(needed[m][i][q][v][f][r][d])
+                                if not needed[m][i][q][v][f][r]:
+                                    del(needed[m][i][q][v][f][r])
+                            if not needed[m][i][q][v][f]:
+                                del(needed[m][i][q][v][f])
+                        if not needed[m][i][q][v]:
+                            del(needed[m][i][q][v])
+                    if not needed[m][i][q]:
+                        del(needed[m][i][q])
+                if not needed[m][i]:
+                    del(needed[m][i])
+            if not needed[m]:
+                del(needed[m])
+        return needed
 
     def run(self, host: Host, guest: Guest, loadgen: LoadGen):
         """
