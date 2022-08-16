@@ -344,16 +344,18 @@ class LoadLatencyTestGenerator(object):
                 self.setup_interface(host, machine, interface)
 
                 for qemu in self.qemus:
+                    qemu_name, qemu_path = qemu.split(':')
+
                     for vhost in self.vhosts:
                         for ioregionfd in self.ioregionfds:
                             if ioregionfd and machine != Machine.MICROVM:
                                 continue
 
                             debug(f"run guest {machine.value} " +
-                                  f"{interface.value} {qemu} {vhost} " +
+                                  f"{interface.value} {qemu_name} {vhost} " +
                                   f"{ioregionfd}")
                             self.run_guest(host, guest, machine, interface,
-                                           qemu, vhost, ioregionfd)
+                                           qemu_path, vhost, ioregionfd)
 
                             debug("wait for guest connectability")
                             try:
@@ -375,7 +377,7 @@ class LoadLatencyTestGenerator(object):
                                     machine=machine,
                                     interface=interface,
                                     mac=guest.test_iface_mac,
-                                    qemu=qemu,
+                                    qemu=qemu_name,
                                     vhost=vhost,
                                     ioregionfd=ioregionfd,
                                     reflector=reflector
@@ -385,7 +387,7 @@ class LoadLatencyTestGenerator(object):
                                 self.stop_reflector(guest, reflector)
 
                             debug(f"kill guest {machine.value} " +
-                                  f"{interface.value} {qemu} {vhost} " +
+                                  f"{interface.value} {qemu_name} {vhost} " +
                                   f"{ioregionfd}")
                             host.kill_guest()
 
