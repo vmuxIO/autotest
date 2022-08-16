@@ -65,8 +65,8 @@ class Server(ABC):
     test_iface: str
     test_iface_addr: str
     _test_iface_id: int = field(default=None, init=False)
-    test_iface_driv: str
     test_iface_mac: str
+    test_iface_driv: str
     moongen_dir: str
     xdp_reflector_dir: str
     localhost: bool = False
@@ -708,7 +708,7 @@ class Server(ABC):
         """
         Get the PCI address for a network interface.
 
-        Note that this does not work once the NIC is bould to DPDK.
+        Note that this does not work once the NIC is bound to DPDK.
 
         Parameters
         ----------
@@ -802,7 +802,7 @@ class Server(ABC):
                   f'{refl_obj_file_path} sec xdp')
         self.exec(f'sudo ip link set {iface} up')
 
-    def stop_xdp_reflector(self: 'Server', iface: str: None):
+    def stop_xdp_reflector(self: 'Server', iface: str = None):
         """
         Stop the xdp reflector.
 
@@ -841,6 +841,8 @@ class Host(Server):
     >>> Host('server.test.de')
     Host(fqdn='server.test.de')
     """
+    guest_test_iface_mac: str
+    guest_root_disk_path: str
 
     def __init__(self: 'Host',
                  fqdn: str,
@@ -848,6 +850,8 @@ class Host(Server):
                  test_iface_addr: str,
                  test_iface_mac: str,
                  test_iface_driv: str,
+                 guest_root_disk_path: str,
+                 guest_test_iface_mac: str,
                  moongen_dir: str,
                  xdp_reflector_dir: str,
                  localhost: bool = False) -> None:
@@ -866,6 +870,10 @@ class Host(Server):
             The MAC address of the test interface.
         test_iface_driv : str
             The driver of the test interface.
+        guest_root_disk_path : str
+            The path to the root disk of the guest.
+        guest_test_iface_mac : str
+            The MAC address of the guest test interface.
         moongen_dir : str
             The directory of the MoonGen installation.
         xdp_reflector_dir : str
@@ -890,6 +898,8 @@ class Host(Server):
         super().__init__(fqdn, test_iface, test_iface_addr, test_iface_mac,
                          test_iface_driv, moongen_dir, xdp_reflector_dir,
                          localhost)
+        self.guest_test_iface_mac = guest_test_iface_mac
+        self.guest_root_disk_path = guest_root_disk_path
 
     def setup_admin_tap(self: 'Host'):
         """
@@ -975,7 +985,8 @@ class Host(Server):
         self.exec('sudo ip link show macvtap1 2>/dev/null' +
                   ' || sudo ip link add link enp176s0 name macvtap1' +
                   ' type macvtap')
-        self.exec('sudo ip link set macvtap1 address 52:54:00:fa:00:60 up')
+        self.exec('sudo ip link set macvtap1 address ' +
+                  f'{self.guest_test_iface_mac} up')
         self.exec('sudo ip link set enp176s0 up')
         self.exec('sudo chmod 666' +
                   ' /dev/tap$(cat /sys/class/net/macvtap1/ifindex)')
@@ -992,12 +1003,51 @@ class Host(Server):
         """
         self.exec('sudo ip link delete macvtap1')
 
+    def setup_test_bridge(self: 'Host'):
+        """
+        Setup test bridge.
+
+        This sets up a bridge device for the test interface of the host.
+
+        Parameters
+        ----------
+        mac : str
+            The MAC address for the test bridge.
+        """
+        # load kernel modules
+        self.exec('sudo modprobe tun tap')
+
+        # create bridge
+        self.exec('sudo ip link show br1 2>/dev/null || sudo brctl addbr br1')
+
+        # set bridge's MAC address
+        self.exec('sudo ip link set br1 down && ' +
+                  f'sudo ip link set br1 address {self.guest_test_iface_mac}')
+
+        # add tap device and physical nic to bridge
+        test_iface_output = self.exec(f'sudo ip link show {self.test_iface}')
+        if 'master br1' not in test_iface_output:
+            self.exec(f'sudo brctl addif br1 {self.test_iface}')
+
+        # bring up all interfaces (nic and bridge)
+        self.exec(f'sudo ip link set {self.test_iface} up' +
+                  ' && sudo ip link set br1 up')
+
+    def destroy_test_bridge(self: 'Host'):
+        """
+        Destroy the test bridge.
+        """
+        self.exec('sudo ip link set br1 down')
+        self.exec('sudo brctl delbr br1')
+
     def run_guest(self: 'Host',
                   net_type: str,
                   machine_type: str,
-                  root_disk: str,
+                  root_disk: str = None,
                   debug_qemu: bool = False,
-                  use_ioregionfd: bool = False
+                  ioregionfd: bool = False,
+                  qemu_build_dir: str = None,
+                  vhost: bool = True
                   ) -> None:
         # TODO this function should get a Guest object as argument
         """
@@ -1014,9 +1064,14 @@ class Host(Server):
         debug_qemu : bool
             True if you want to attach GDB to Qemu. The GDB server will
             be bound to port 1234.
-        use_ioregionfd : bool
+        ioregionfd : bool
             True if you want to use the IORegionFD enhanced virtio_net_device
             for the test interface.
+        qemu_build_dir : str
+            Path to the Qemu build directory. Can be empty if you want to use
+            the installed Qemu.
+        vhost : bool
+            True if you want to use vhost on the test interface.
 
         Returns
         -------
@@ -1026,29 +1081,37 @@ class Host(Server):
         # and compile them.
         dev_type = 'pci' if machine_type == 'pc' else 'device'
         test_net_config = (
-            ' -netdev tap,vhost=on,id=admin1,ifname=tap1,script=no,' +
+            f" -netdev tap,vhost={'on' if vhost else 'off'}," +
+            'id=admin1,ifname=tap1,script=no,' +
             'downscript=no,queues=4' +
             f' -device virtio-net-{dev_type},id=testif,netdev=admin1,' +
             'mac=52:54:00:fa:00:60,mq=on' +
-            (',use-ioregionfd=true' if use_ioregionfd else '')
+            (',use-ioregionfd=true' if ioregionfd else '')
         ) if net_type == 'brtap' else (
-            ' -netdev tap,vhost=on,id=admin1,fd=3 3<>/dev/tap$(cat ' +
+            f" -netdev tap,vhost={'on' if vhost else 'off'}," +
+            'id=admin1,fd=3 3<>/dev/tap$(cat ' +
             '/sys/class/net/macvtap1/ifindex) ' +
             f' -device virtio-net-{dev_type},id=testif,' +
             'netdev=admin1,mac=$(cat ' +
             '/sys/class/net/macvtap1/address)' +
-            (',use-ioregionfd=true' if use_ioregionfd else '')
+            (',use-ioregionfd=true' if ioregionfd else '')
         )
+        qemu_bin_path = 'qemu-system-x86_64'
+        if qemu_build_dir:
+            qemu_bin_path = path_join(qemu_build_dir, qemu_bin_path)
+        disk_path = self.guest_root_disk_path
+        if root_disk:
+            disk_path = root_disk
         self.tmux_new(
             'qemu',
             ('gdbserver 0.0.0.0:1234 ' if debug_qemu else '') +
-            'qemu-system-x86_64' +
+            qemu_bin_path +
             f' -machine {machine_type}' +
             ' -cpu host' +
             ' -smp 4' +
             ' -m 4096' +
             ' -enable-kvm' +
-            f' -drive id=root,format=raw,file={root_disk},if=none,' +
+            f' -drive id=root,format=raw,file={disk_path},if=none,' +
             'cache=none' +
             f' -device virtio-blk-{dev_type},id=rootdisk,drive=root' +
             ' -cdrom /home/networkadmin/images/guest_init.iso' +

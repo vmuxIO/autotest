@@ -17,6 +17,7 @@ from os.path import isdir, isfile, join as path_join
 
 # project imports
 from server import Server, Host, Guest, LoadGen
+from loadlatency import Machine, Interface, Reflector, LoadLatencyTestGenerator
 
 
 # constants
@@ -499,8 +500,10 @@ def create_servers(conf: ConfigParser,
             conf['host']['fqdn'],
             conf['host']['test_iface'],
             conf['host']['test_iface_addr'],
-            conf['host']['test_iface_driv'],
             conf['host']['test_iface_mac'],
+            conf['host']['test_iface_driv'],
+            conf['guest']['root_disk_file'],
+            conf['guest']['test_iface_mac'],
             conf['host']['moongen_dir'],
             conf['host']['xdp_reflector_dir']
         )
@@ -509,8 +512,8 @@ def create_servers(conf: ConfigParser,
             conf['guest']['fqdn'],
             conf['guest']['test_iface'],
             conf['guest']['test_iface_addr'],
-            conf['guest']['test_iface_driv'],
             conf['guest']['test_iface_mac'],
+            conf['guest']['test_iface_driv'],
             conf['guest']['moongen_dir'],
             conf['guest']['xdp_reflector_dir']
         )
@@ -519,8 +522,8 @@ def create_servers(conf: ConfigParser,
             conf['loadgen']['fqdn'],
             conf['loadgen']['test_iface'],
             conf['loadgen']['test_iface_addr'],
-            conf['loadgen']['test_iface_driv'],
             conf['loadgen']['test_iface_mac'],
+            conf['loadgen']['test_iface_driv'],
             conf['loadgen']['moongen_dir']
         )
     return servers
@@ -591,7 +594,7 @@ def run_guest(args: Namespace, conf: ConfigParser) -> None:
         else:
             host.setup_test_macvtap()
 
-        disk = args.disk if args.disk else conf['guest']['root_disk_file']
+        disk = args.disk if args.disk else None
 
         host.run_guest(args.interface, args.machine, disk, args.debug,
                        args.ioregionfd)
@@ -1133,25 +1136,30 @@ def test_load_lat_file(args: Namespace, conf: ConfigParser) -> None:
     Returns
     -------
     """
+    host: Host
+    guest: Guest
+    loadgen: LoadGen
+    host, guest, loadgen = create_servers(conf).values()
+
     test_conf = ConfigParser()
     test_conf.read(args.testconfig.name)
 
     for section in test_conf.sections():
-        test_load_latency(
-            test_conf[section]['name'],
-            [i.strip() for i in test_conf[section]['interfaces'].split(',')],
-            test_conf[section]['outdir'],
-            test_conf[section]['reflector'],
-            test_conf[section]['loadprog'],
-            test_conf[section]['reflprog'],
-            [int(r.strip()) for r in test_conf[section]['rates'].split(',')],
-            [int(t.strip()) for t in test_conf[section]['threads'].split(',')],
-            int(test_conf[section]['runtime']),
-            int(test_conf[section]['reps']),
-            True if test_conf[section]['accumulate'] == 'true' else False,
-            args,
-            conf
+        tconf = test_conf[section]
+        generator = LoadLatencyTestGenerator(
+            {Machine(m.strip()) for m in tconf['machines'].split(',')},
+            {Interface(i.strip()) for i in tconf['interfaces'].split(',')},
+            {q.strip() for q in tconf['qemus'].split(',')},
+            {v.strip() == 'true' for v in tconf['vhosts'].split(',')},
+            {io.strip() == 'true' for io in tconf['ioregionfds'].split(',')},
+            {Reflector(rf.strip()) for rf in tconf['reflectors'].split(',')},
+            {int(ra.strip()) for ra in tconf['rates'].split(',')},
+            {int(rt.strip()) for rt in tconf['runtimes'].split(',')},
+            int(tconf['repetitions']),
+            tconf['accumulate'] == 'true',
+            tconf['outputdir']
         )
+        generator.run(host, guest, loadgen)
 
 
 def test_load_lat_cli(args: Namespace, conf: ConfigParser) -> None:
