@@ -157,7 +157,7 @@ class LoadLatencyTest(object):
             return
 
         acc_hist_filename = f'acc_histogram_{self.test_infix()}.csv'
-        acc_hist_filepath = path_join(self.output_filepath, acc_hist_filename)
+        acc_hist_filepath = path_join(self.outputdir, acc_hist_filename)
         if isfile(acc_hist_filepath):
             debug('Skipping accumulation, already done.')
             return
