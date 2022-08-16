@@ -378,6 +378,9 @@ class LoadLatencyTestGenerator(object):
                             guest.detect_test_iface()
 
                             for reflector in self.reflectors:
+                                if (machine == Machine.MICROVM and
+                                        reflector == Reflector.MOONGEN):
+                                    continue
                                 debug(f"start reflector {reflector.value}")
                                 self.start_reflector(guest, reflector)
 
