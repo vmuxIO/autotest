@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from enum import Enum
 from logging import error, info, debug
 from time import sleep
+from os.path import isfile, join as path_join
 
 from server import Server, Host, Guest, LoadGen
 
@@ -110,14 +111,44 @@ class LoadLatencyTest(object):
                 f"outputdir={self.outputdir})")
 
     def run(self, loadgen: LoadGen):
-        debug(f"run test {self}")
+        debug(f"Running test {self}")
         for repetition in range(self.repetitions):
-            debug(f'repetition {repetition}')
-            # here we check if test repetition already done
-            # run test repetition
-            # TODO port the loop body from test_load_latency
-            # also wait until done and download files
-            pass
+            if self.test_done(repetition):
+                debug(f"Skipping repetition {repetition}, already done")
+                continue
+            debug(f'Running repetition {repetition}')
+
+            remote_output_file = path_join(loadgen.moongen_dir,
+                                           'output.log')
+            remote_histogram_file = path_join(loadgen.moongen_dir,
+                                              'histogram.csv')
+
+            try:
+                loadgen.exec(f'rm -f {remote_output_file} ' +
+                             f'{remote_histogram_file}')
+                loadgen.run_l2_load_latency(self.mac, self.rate, self.runtime)
+            except Exception as e:
+                error(f'Failed to run test due to exception: {e}')
+                continue
+
+            sleep(self.runtime + 5)
+            try:
+                loadgen.wait_for_success(f'ls {remote_histogram_file}')
+            except TimeoutError:
+                error('Waiting for histogram file to appear timed')
+                continue
+            sleep(1)
+            # TODO here a tmux_exists function would come in handy
+
+            # TODO stopping still fails when the tmux session
+            # does not exist
+            # loadgen.stop_l2_load_latency()
+
+            # download results
+            loadgen.copy_from(remote_output_file,
+                              self.output_filepath(repetition))
+            loadgen.copy_from(remote_histogram_file,
+                              self.histogram_filepath(repetition))
 
     def accumulate(self):
         # TODO port the function accumulate_histograms
