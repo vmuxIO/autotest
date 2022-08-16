@@ -474,7 +474,7 @@ class Server(ABC):
         --------
         """
         return self.exec(f'lspci -v -s {device_addr} | grep driver ' +
-                         '| cut -d":" -f 2 | tr -d " "')
+                         '| cut -d":" -f 2 | tr -d " "').replace('\n', '')
 
     def get_driver_for_nic(self: 'Server', iface: str) -> str:
         """
