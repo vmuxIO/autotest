@@ -502,8 +502,8 @@ def create_servers(conf: ConfigParser,
             conf['host']['test_iface_addr'],
             conf['host']['test_iface_mac'],
             conf['host']['test_iface_driv'],
-            conf['guest']['test_iface_mac'],
             conf['guest']['root_disk_file'],
+            conf['guest']['test_iface_mac'],
             conf['host']['moongen_dir'],
             conf['host']['xdp_reflector_dir']
         )
