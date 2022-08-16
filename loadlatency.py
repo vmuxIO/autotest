@@ -60,7 +60,22 @@ class LoadLatencyTest(object):
     repetitions: int
     outputdir: str
 
-    # TODO port the function test_infix
+    def test_infix(self):
+        if self.machine == Machine.HOST:
+            return (
+                f"{self.machine.value}_{self.interface.value}" +
+                f"_{self.reflector.value}_{self.rate*1000}Mbps" +
+                f"_{self.runtime}s"
+            )
+        else:
+            return (
+                f"{self.machine.value}_{self.interface.value}" +
+                f"_{self.qemu}_vhost{'on' if self.vhost else 'off'}" +
+                f"_ioregionfd{'on' if self.ioregionfd else 'off'}" +
+                f"_{self.reflector.value}_{self.rate*1000}Mbps" +
+                f"_{self.runtime}s"
+            )
+
     # TODO port the function output_filepath
     # TODO port the function histogram_filepath
     # TODO port the function test_done
