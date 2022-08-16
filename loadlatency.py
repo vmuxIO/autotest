@@ -297,6 +297,10 @@ class LoadLatencyTestGenerator(object):
             pass
         host.cleanup_network()
 
+        debug('Binding loadgen interface')
+        loadgen.bind_test_iface()
+        loadgen.setup_hugetlbfs()
+
         if Machine.HOST in self.machines:
             info("Running host tests")
             machine = Machine.HOST
