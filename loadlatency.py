@@ -340,6 +340,9 @@ class LoadLatencyTestGenerator(object):
                                 continue
                             tree[m][i][q][v][io] = {}
                             for r in self.reflectors:
+                                if (m == Machine.MICROVM and
+                                        r == Reflector.MOONGEN):
+                                    continue
                                 tree[m][i][q][v][io][r] = \
                                     self.create_interface_test_tree(
                                         machine=m,
