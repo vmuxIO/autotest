@@ -296,6 +296,7 @@ class LoadLatencyTestGenerator(object):
     def create_test_tree(self, host: Host):
         tree = {}
         count = 0
+        interface_test_count = len(self.rates) * len(self.runtimes)
         # host part
         mac = host.test_iface_mac
         if Machine.HOST in self.machines:
@@ -323,7 +324,7 @@ class LoadLatencyTestGenerator(object):
                             ioregionfd=io,
                             reflector=r
                         )
-                    count += 1
+                    count += interface_test_count
         # vm part
         mac = host.guest_test_iface_mac
         for m in self.machines - {Machine.HOST}:
@@ -353,7 +354,7 @@ class LoadLatencyTestGenerator(object):
                                         ioregionfd=io,
                                         reflector=r
                                     )
-                                count += 1
+                                count += interface_test_count
         info(f'Generated {count} tests')
         return tree
 
