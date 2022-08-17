@@ -209,7 +209,7 @@ class LoadLatencyTestGenerator(object):
     todo_test_tree: dict = field(init=False, repr=False, default=None)
 
     def __post_init__(self):
-        info('Running test generator:')
+        info('Initializing test generator:')
         info(f'  machines   : {set(m.value for m in self.machines)}')
         info(f'  interfaces : {set(i.value for i in self.interfaces)}')
         info(f'  qemus      : {self.qemus}')
