@@ -306,13 +306,13 @@ class LoadLatencyTestGenerator(object):
             tree[m] = {}
             for i in self.interfaces:
                 tree[m][i] = {}
+                tree[m][i][q] = {}
+                tree[m][i][q][v] = {}
+                tree[m][i][q][v][io] = {}
                 for r in self.reflectors:
                     if (i != Interface.PNIC and
                             r == Reflector.MOONGEN):
                         continue
-                    tree[m][i][q] = {}
-                    tree[m][i][q][v] = {}
-                    tree[m][i][q][v][io] = {}
                     tree[m][i][q][v][io][r] = \
                         self.create_interface_test_tree(
                             machine=m,
