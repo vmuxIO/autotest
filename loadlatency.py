@@ -330,8 +330,8 @@ class LoadLatencyTestGenerator(object):
             tree[m] = {}
             for i in self.interfaces - {Interface.PNIC}:
                 tree[m][i] = {}
-                for qemu in self.qemus:
-                    q, _ = qemu.split(':')
+                for q in self.qemus:
+                    qemu, _ = q.split(':')
                     tree[m][i][q] = {}
                     for v in self.vhosts:
                         tree[m][i][q][v] = {}
@@ -345,7 +345,7 @@ class LoadLatencyTestGenerator(object):
                                         machine=m,
                                         interface=i,
                                         mac=mac,
-                                        qemu=q,
+                                        qemu=qemu,
                                         vhost=v,
                                         ioregionfd=io,
                                         reflector=r
