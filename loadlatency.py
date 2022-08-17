@@ -358,6 +358,7 @@ class LoadLatencyTestGenerator(object):
         return tree
 
     def create_needed_test_tree(self, test_tree: dict):
+        info('Remove already done tests')
         needed = deepcopy(test_tree)
         count = 0
         for m, mtree in test_tree.items():
