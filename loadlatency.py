@@ -221,36 +221,10 @@ class LoadLatencyTestGenerator(object):
         info(f'  repetitions: {self.repetitions}')
         info(f'  accumulate : {self.accumulate}')
         info(f'  outputdir  : {self.outputdir}')
-        self.full_test_tree = self.create_test_tree()
-        self.todo_test_tree = self.create_needed_test_tree(self.full_test_tree)
 
-    def run_interface_tests(self, loadgen: LoadGen, machine: Machine,
-                            interface: Interface, mac: str, qemu: str,
-                            vhost: bool, ioregionfd: bool,
-                            reflector: Reflector):
-        """
-        Run tests for the given interface
-        """
-        for rate in self.rates:
-            for runtime in self.runtimes:
-                test = LoadLatencyTest(
-                    machine=machine,
-                    interface=interface,
-                    mac=mac,
-                    qemu=qemu,
-                    vhost=vhost,
-                    ioregionfd=ioregionfd,
-                    reflector=reflector,
-                    rate=rate,
-                    runtime=runtime,
-                    repetitions=self.repetitions,
-                    outputdir=self.outputdir,
-                )
-                test.run(loadgen)
-                if self.accumulate:
-                    # TODO we probably need to put this somewhere else to
-                    # make sure it runs even if the tests are already done
-                    test.accumulate()
+    def generate(self, host: Host):
+        self.full_test_tree = self.create_test_tree(host)
+        self.todo_test_tree = self.create_needed_test_tree(self.full_test_tree)
 
     def setup_interface(self, host: Host, machine: Machine,
                         interface: Interface, bridge_mac: str = None):
@@ -296,7 +270,7 @@ class LoadLatencyTestGenerator(object):
         )
 
     def create_interface_test_tree(self, machine: Machine,
-                                   interface: Interface, qemu: str,
+                                   interface: Interface, mac: str, qemu: str,
                                    vhost: bool, ioregionfd: bool,
                                    reflector: Reflector):
         tree = {}
@@ -306,7 +280,7 @@ class LoadLatencyTestGenerator(object):
                 test = LoadLatencyTest(
                     machine=machine,
                     interface=interface,
-                    mac=None,
+                    mac=mac,
                     qemu=qemu,
                     vhost=vhost,
                     ioregionfd=ioregionfd,
@@ -319,10 +293,11 @@ class LoadLatencyTestGenerator(object):
                 tree[rate][runtime] = test
         return tree
 
-    def create_test_tree(self):
+    def create_test_tree(self, host: Host):
         tree = {}
         count = 0
         # host part
+        mac = host.test_iface_mac
         if Machine.HOST in self.machines:
             m = Machine.HOST
             q = None
@@ -342,6 +317,7 @@ class LoadLatencyTestGenerator(object):
                         self.create_interface_test_tree(
                             machine=m,
                             interface=i,
+                            mac=mac,
                             qemu=q,
                             vhost=v,
                             ioregionfd=io,
@@ -349,6 +325,7 @@ class LoadLatencyTestGenerator(object):
                         )
                     count += 1
         # vm part
+        mac = host.guest_test_iface_mac
         for m in self.machines - {Machine.HOST}:
             tree[m] = {}
             for i in self.interfaces - {Interface.PNIC}:
@@ -367,6 +344,7 @@ class LoadLatencyTestGenerator(object):
                                     self.create_interface_test_tree(
                                         machine=m,
                                         interface=i,
+                                        mac=mac,
                                         qemu=q,
                                         vhost=v,
                                         ioregionfd=io,

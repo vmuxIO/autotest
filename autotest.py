@@ -1159,6 +1159,7 @@ def test_load_lat_file(args: Namespace, conf: ConfigParser) -> None:
             tconf['accumulate'] == 'true',
             tconf['outputdir']
         )
+        generator.generate(host)
         generator.run(host, guest, loadgen)
 
 
