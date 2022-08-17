@@ -169,7 +169,7 @@ class LoadLatencyTest(object):
             debug('Skipping accumulation, already done.')
             return
 
-        info("Accumulating histograms.")
+        info(f"Accumulating histograms for {self}")
         histogram = {}
         for repetition in range(self.repetitions):
             assert self.test_done(repetition), 'Test not done yet'
