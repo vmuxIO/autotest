@@ -1,8 +1,9 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from logging import error, info, debug
 from time import sleep
 from os.path import isfile, join as path_join
+from copy import deepcopy
 
 from server import Server, Host, Guest, LoadGen
 
@@ -96,6 +97,12 @@ class LoadLatencyTest(object):
 
         return isfile(output_file) and isfile(histogram_file)
 
+    def needed(self):
+        for repetition in range(self.repetitions):
+            if self.test_done(repetition):
+                return False
+        return True
+
     def __str__(self):
         return ("LoadLatencyTest(" +
                 f"machine={self.machine.value}, " +
@@ -162,7 +169,7 @@ class LoadLatencyTest(object):
             debug('Skipping accumulation, already done.')
             return
 
-        info("Accumulating histograms.")
+        info(f"Accumulating histograms for {self}")
         histogram = {}
         for repetition in range(self.repetitions):
             assert self.test_done(repetition), 'Test not done yet'
@@ -198,31 +205,26 @@ class LoadLatencyTestGenerator(object):
     accumulate: bool
     outputdir: str
 
-    def run_interface_tests(self, loadgen: LoadGen, machine: Machine,
-                            interface: Interface, mac: str, qemu: str,
-                            vhost: bool, ioregionfd: bool,
-                            reflector: Reflector):
-        """
-        Run tests for the given interface
-        """
-        for rate in self.rates:
-            for runtime in self.runtimes:
-                test = LoadLatencyTest(
-                    machine=machine,
-                    interface=interface,
-                    mac=mac,
-                    qemu=qemu,
-                    vhost=vhost,
-                    ioregionfd=ioregionfd,
-                    reflector=reflector,
-                    rate=rate,
-                    runtime=runtime,
-                    repetitions=self.repetitions,
-                    outputdir=self.outputdir,
-                )
-                test.run(loadgen)
-                if self.accumulate:
-                    test.accumulate()
+    full_test_tree: dict = field(init=False, repr=False, default=None)
+    todo_test_tree: dict = field(init=False, repr=False, default=None)
+
+    def __post_init__(self):
+        info('Initializing test generator:')
+        info(f'  machines   : {set(m.value for m in self.machines)}')
+        info(f'  interfaces : {set(i.value for i in self.interfaces)}')
+        info(f'  qemus      : {self.qemus}')
+        info(f'  vhosts     : {self.vhosts}')
+        info(f'  ioregionfds: {self.ioregionfds}')
+        info(f'  reflectors : {set(r.value for r in self.reflectors)}')
+        info(f'  rates      : {self.rates}')
+        info(f'  runtimes   : {self.runtimes}')
+        info(f'  repetitions: {self.repetitions}')
+        info(f'  accumulate : {self.accumulate}')
+        info(f'  outputdir  : {self.outputdir}')
+
+    def generate(self, host: Host):
+        self.full_test_tree = self.create_test_tree(host)
+        self.todo_test_tree = self.create_needed_test_tree(self.full_test_tree)
 
     def setup_interface(self, host: Host, machine: Machine,
                         interface: Interface, bridge_mac: str = None):
@@ -267,23 +269,132 @@ class LoadLatencyTestGenerator(object):
             vhost=vhost
         )
 
+    def create_interface_test_tree(self, machine: Machine,
+                                   interface: Interface, mac: str, qemu: str,
+                                   vhost: bool, ioregionfd: bool,
+                                   reflector: Reflector):
+        tree = {}
+        for rate in self.rates:
+            tree[rate] = {}
+            for runtime in self.runtimes:
+                test = LoadLatencyTest(
+                    machine=machine,
+                    interface=interface,
+                    mac=mac,
+                    qemu=qemu,
+                    vhost=vhost,
+                    ioregionfd=ioregionfd,
+                    reflector=reflector,
+                    rate=rate,
+                    runtime=runtime,
+                    repetitions=self.repetitions,
+                    outputdir=self.outputdir,
+                )
+                tree[rate][runtime] = test
+        return tree
+
+    def create_test_tree(self, host: Host):
+        tree = {}
+        count = 0
+        interface_test_count = len(self.rates) * len(self.runtimes)
+        # host part
+        mac = host.test_iface_mac
+        if Machine.HOST in self.machines:
+            m = Machine.HOST
+            q = None
+            v = None
+            io = None
+            tree[m] = {}
+            for i in self.interfaces:
+                tree[m][i] = {}
+                tree[m][i][q] = {}
+                tree[m][i][q][v] = {}
+                tree[m][i][q][v][io] = {}
+                for r in self.reflectors:
+                    if (i != Interface.PNIC and
+                            r == Reflector.MOONGEN):
+                        continue
+                    tree[m][i][q][v][io][r] = \
+                        self.create_interface_test_tree(
+                            machine=m,
+                            interface=i,
+                            mac=mac,
+                            qemu=q,
+                            vhost=v,
+                            ioregionfd=io,
+                            reflector=r
+                        )
+                    count += interface_test_count
+        # vm part
+        mac = host.guest_test_iface_mac
+        for m in self.machines - {Machine.HOST}:
+            tree[m] = {}
+            for i in self.interfaces - {Interface.PNIC}:
+                tree[m][i] = {}
+                for q in self.qemus:
+                    qemu, _ = q.split(':')
+                    tree[m][i][q] = {}
+                    for v in self.vhosts:
+                        tree[m][i][q][v] = {}
+                        for io in self.ioregionfds:
+                            if io and m != Machine.MICROVM:
+                                continue
+                            tree[m][i][q][v][io] = {}
+                            for r in self.reflectors:
+                                if (m == Machine.MICROVM and
+                                        r == Reflector.MOONGEN):
+                                    continue
+                                tree[m][i][q][v][io][r] = \
+                                    self.create_interface_test_tree(
+                                        machine=m,
+                                        interface=i,
+                                        mac=mac,
+                                        qemu=qemu,
+                                        vhost=v,
+                                        ioregionfd=io,
+                                        reflector=r
+                                    )
+                                count += interface_test_count
+        info(f'Generated {count} tests')
+        return tree
+
+    def create_needed_test_tree(self, test_tree: dict):
+        info('Remove already done tests')
+        needed = deepcopy(test_tree)
+        count = 0
+        for m, mtree in test_tree.items():
+            for i, itree in mtree.items():
+                for q, qtree in itree.items():
+                    for v, vtree in qtree.items():
+                        for f, ftree in vtree.items():
+                            for r, rtree in ftree.items():
+                                for a, atree in rtree.items():
+                                    for t, test in atree.items():
+                                        if not test.needed():
+                                            del(needed[m][i][q][v][f][r][a][t])
+                                        else:
+                                            count += 1
+                                    if not needed[m][i][q][v][f][r][a]:
+                                        del(needed[m][i][q][v][f][r][a])
+                                if not needed[m][i][q][v][f][r]:
+                                    del(needed[m][i][q][v][f][r])
+                            if not needed[m][i][q][v][f]:
+                                del(needed[m][i][q][v][f])
+                        if not needed[m][i][q][v]:
+                            del(needed[m][i][q][v])
+                    if not needed[m][i][q]:
+                        del(needed[m][i][q])
+                if not needed[m][i]:
+                    del(needed[m][i])
+            if not needed[m]:
+                del(needed[m])
+        info(f'{count} tests are not done yet')
+        return needed
+
     def run(self, host: Host, guest: Guest, loadgen: LoadGen):
         """
-        Run the generator
+        Run the tests
         """
-
-        info('Running test generator:')
-        info(f'  machines   : {set(m.value for m in self.machines)}')
-        info(f'  interfaces : {set(i.value for i in self.interfaces)}')
-        info(f'  qemus      : {self.qemus}')
-        info(f'  vhosts     : {self.vhosts}')
-        info(f'  ioregionfds: {self.ioregionfds}')
-        info(f'  reflectors : {set(r.value for r in self.reflectors)}')
-        info(f'  rates      : {self.rates}')
-        info(f'  runtimes   : {self.runtimes}')
-        info(f'  repetitions: {self.repetitions}')
-        info(f'  accumulate : {self.accumulate}')
-        info(f'  outputdir  : {self.outputdir}')
         # TODO Qemus should contain strings like
         #   normal:/home/networkadmin/qemu-build
         #   replace-ioeventfd:/home/networkadmin/qemu-build-2
@@ -292,6 +403,9 @@ class LoadLatencyTestGenerator(object):
         # The rest is the path to the qemu build directory and just used here
         # to start the guest.
         # In case no name is given, we could number them.
+        if not self.todo_test_tree:
+            info('No tests to run')
+            return
 
         debug('Initial cleanup')
         try:
@@ -304,106 +418,71 @@ class LoadLatencyTestGenerator(object):
         loadgen.bind_test_iface()
         loadgen.setup_hugetlbfs()
 
-        if Machine.HOST in self.machines:
-            info("Running host tests")
-            machine = Machine.HOST
-            qemu = None
-            vhost = None
-            ioregionfd = None
+        host.detect_test_iface()
 
-            for interface in self.interfaces:
-                debug(f"setup host interface {interface.value}")
-                host.detect_test_iface()
+        for machine, mtree in self.todo_test_tree.items():
+            info(f"Running {machine.value} tests")
+
+            for interface, itree in mtree.items():
+                debug(f"Setting up interface {interface.value}")
                 self.setup_interface(host, machine, interface)
 
-                for reflector in self.reflectors:
-                    if (interface != Interface.PNIC and
-                            reflector == Reflector.MOONGEN):
-                        continue
-
-                    debug(f"start reflector {reflector.value}")
-                    self.start_reflector(host, reflector)
-
-                    mac = host.test_iface_mac if interface == Interface.PNIC \
-                        else host.guest_test_iface_mac
-                    self.run_interface_tests(
-                        loadgen=loadgen,
-                        machine=machine,
-                        interface=interface,
-                        mac=mac,
-                        qemu=qemu,
-                        vhost=vhost,
-                        ioregionfd=ioregionfd,
-                        reflector=reflector
-                    )
-
-                    debug(f"stop reflector {reflector.value}")
-                    self.stop_reflector(host, reflector)
-
-                debug(f"teardown host interface {interface.value}")
-                host.cleanup_network()
-
-        for machine in self.machines - {Machine.HOST}:
-            info(f"Running {machine.value} guest tests")
-
-            for interface in self.interfaces - {Interface.PNIC}:
-                debug(f"setup guest interface {interface.value}")
-                self.setup_interface(host, machine, interface)
-
-                for qemu in self.qemus:
-                    qemu_name, qemu_path = qemu.split(':')
+                for qemu, qtree in itree.items():
+                    qemu_name = None
+                    qemu_path = None
+                    if qemu:
+                        qemu_name, qemu_path = qemu.split(':')
                     # TODO make sure the qemu_path exists and qemu is
                     # executable
 
-                    for vhost in self.vhosts:
-                        for ioregionfd in self.ioregionfds:
-                            if ioregionfd and machine != Machine.MICROVM:
-                                continue
+                    for vhost, vtree in qtree.items():
+                        for ioregionfd, ftree in vtree.items():
 
-                            debug(f"run guest {machine.value} " +
-                                  f"{interface.value} {qemu_name} {vhost} " +
-                                  f"{ioregionfd}")
-                            self.run_guest(host, machine, interface,
-                                           qemu_path, vhost, ioregionfd)
+                            if machine == Machine.HOST:
+                                dut = host
+                            else:
+                                dut = guest
+                                debug(f"Running guest {machine.value} " +
+                                      f"{interface.value} {qemu_name} " +
+                                      f"{vhost} {ioregionfd}")
+                                self.run_guest(host, machine, interface,
+                                               qemu_path, vhost, ioregionfd)
 
-                            debug("wait for guest connectability")
-                            try:
-                                guest.wait_for_connection()
-                            except TimeoutError:
-                                error('Waiting for connection to guest ' +
-                                      'timed out.')
-                                return
+                                debug("Waiting for guest connectivity")
+                                try:
+                                    guest.wait_for_connection()
+                                except TimeoutError:
+                                    error('Waiting for connection to guest ' +
+                                          'timed out.')
+                                    return
 
-                            debug("detect guest test interface")
-                            guest.detect_test_iface()
+                                debug("Detecting guest test interface")
+                                guest.detect_test_iface()
 
-                            for reflector in self.reflectors:
-                                if (machine == Machine.MICROVM and
-                                        reflector == Reflector.MOONGEN):
-                                    continue
-                                debug(f"start reflector {reflector.value}")
-                                self.start_reflector(guest, reflector)
+                            for reflector, rtree in ftree.items():
+                                debug(f"Starting reflector {reflector.value}")
+                                self.start_reflector(dut, reflector)
 
-                                self.run_interface_tests(
-                                    loadgen=loadgen,
-                                    machine=machine,
-                                    interface=interface,
-                                    mac=guest.test_iface_mac,
-                                    qemu=qemu_name,
-                                    vhost=vhost,
-                                    ioregionfd=ioregionfd,
-                                    reflector=reflector
-                                )
+                                for rate, atree in rtree.items():
+                                    for runtime, test in atree.items():
+                                        test.run(loadgen)
+                                        if self.accumulate:
+                                            # TODO we probably need to put
+                                            # this somewhere else to
+                                            # make sure it runs even if the
+                                            # tests are already done
+                                            test.accumulate()
 
-                                debug(f"stop reflector {reflector.value}")
-                                self.stop_reflector(guest, reflector)
+                                debug(f"Stopping reflector {reflector.value}")
+                                self.stop_reflector(dut, reflector)
 
-                            debug(f"kill guest {machine.value} " +
-                                  f"{interface.value} {qemu_name} {vhost} " +
-                                  f"{ioregionfd}")
-                            host.kill_guest()
+                            if machine != Machine.HOST:
+                                debug(f"Killing guest {machine.value} " +
+                                      f"{interface.value} {qemu_name} " +
+                                      f"{vhost} {ioregionfd}")
+                                host.kill_guest()
 
-                debug(f"teardown guest interface {interface.value}")
+                debug(f"Tearing down interface {interface.value}")
                 host.cleanup_network()
 
 
