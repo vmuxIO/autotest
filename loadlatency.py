@@ -402,6 +402,9 @@ class LoadLatencyTestGenerator(object):
         # The rest is the path to the qemu build directory and just used here
         # to start the guest.
         # In case no name is given, we could number them.
+        if not self.todo_test_tree:
+            info('No tests to run')
+            return
 
         debug('Initial cleanup')
         try:
@@ -414,106 +417,71 @@ class LoadLatencyTestGenerator(object):
         loadgen.bind_test_iface()
         loadgen.setup_hugetlbfs()
 
-        if Machine.HOST in self.machines:
-            info("Running host tests")
-            machine = Machine.HOST
-            qemu = None
-            vhost = None
-            ioregionfd = None
+        host.detect_test_iface()
 
-            for interface in self.interfaces:
-                debug(f"setup host interface {interface.value}")
-                host.detect_test_iface()
+        for machine, mtree in self.todo_test_tree.items():
+            info(f"Running {machine.value} tests")
+
+            for interface, itree in mtree.items():
+                debug(f"Setting up interface {interface.value}")
                 self.setup_interface(host, machine, interface)
 
-                for reflector in self.reflectors:
-                    if (interface != Interface.PNIC and
-                            reflector == Reflector.MOONGEN):
-                        continue
-
-                    debug(f"start reflector {reflector.value}")
-                    self.start_reflector(host, reflector)
-
-                    mac = host.test_iface_mac if interface == Interface.PNIC \
-                        else host.guest_test_iface_mac
-                    self.run_interface_tests(
-                        loadgen=loadgen,
-                        machine=machine,
-                        interface=interface,
-                        mac=mac,
-                        qemu=qemu,
-                        vhost=vhost,
-                        ioregionfd=ioregionfd,
-                        reflector=reflector
-                    )
-
-                    debug(f"stop reflector {reflector.value}")
-                    self.stop_reflector(host, reflector)
-
-                debug(f"teardown host interface {interface.value}")
-                host.cleanup_network()
-
-        for machine in self.machines - {Machine.HOST}:
-            info(f"Running {machine.value} guest tests")
-
-            for interface in self.interfaces - {Interface.PNIC}:
-                debug(f"setup guest interface {interface.value}")
-                self.setup_interface(host, machine, interface)
-
-                for qemu in self.qemus:
-                    qemu_name, qemu_path = qemu.split(':')
+                for qemu, qtree in itree.items():
+                    qemu_name = None
+                    qemu_path = None
+                    if qemu:
+                        qemu_name, qemu_path = qemu.split(':')
                     # TODO make sure the qemu_path exists and qemu is
                     # executable
 
-                    for vhost in self.vhosts:
-                        for ioregionfd in self.ioregionfds:
-                            if ioregionfd and machine != Machine.MICROVM:
-                                continue
+                    for vhost, vtree in qtree.items():
+                        for ioregionfd, ftree in vtree.items():
 
-                            debug(f"run guest {machine.value} " +
-                                  f"{interface.value} {qemu_name} {vhost} " +
-                                  f"{ioregionfd}")
-                            self.run_guest(host, machine, interface,
-                                           qemu_path, vhost, ioregionfd)
+                            if machine == Machine.HOST:
+                                dut = host
+                            else:
+                                dut = guest
+                                debug(f"Running guest {machine.value} " +
+                                      f"{interface.value} {qemu_name} " +
+                                      f"{vhost} {ioregionfd}")
+                                self.run_guest(host, machine, interface,
+                                               qemu_path, vhost, ioregionfd)
 
-                            debug("wait for guest connectability")
-                            try:
-                                guest.wait_for_connection()
-                            except TimeoutError:
-                                error('Waiting for connection to guest ' +
-                                      'timed out.')
-                                return
+                                debug("Waiting for guest connectivity")
+                                try:
+                                    guest.wait_for_connection()
+                                except TimeoutError:
+                                    error('Waiting for connection to guest ' +
+                                          'timed out.')
+                                    return
 
-                            debug("detect guest test interface")
-                            guest.detect_test_iface()
+                                debug("Detecting guest test interface")
+                                guest.detect_test_iface()
 
-                            for reflector in self.reflectors:
-                                if (machine == Machine.MICROVM and
-                                        reflector == Reflector.MOONGEN):
-                                    continue
-                                debug(f"start reflector {reflector.value}")
-                                self.start_reflector(guest, reflector)
+                            for reflector, rtree in ftree.items():
+                                debug(f"Starting reflector {reflector.value}")
+                                self.start_reflector(dut, reflector)
 
-                                self.run_interface_tests(
-                                    loadgen=loadgen,
-                                    machine=machine,
-                                    interface=interface,
-                                    mac=guest.test_iface_mac,
-                                    qemu=qemu_name,
-                                    vhost=vhost,
-                                    ioregionfd=ioregionfd,
-                                    reflector=reflector
-                                )
+                                for rate, atree in rtree.items():
+                                    for runtime, test in atree.items():
+                                        test.run(loadgen)
+                                        if self.accumulate:
+                                            # TODO we probably need to put
+                                            # this somewhere else to
+                                            # make sure it runs even if the
+                                            # tests are already done
+                                            test.accumulate()
 
-                                debug(f"stop reflector {reflector.value}")
-                                self.stop_reflector(guest, reflector)
+                                debug(f"Stopping reflector {reflector.value}")
+                                self.stop_reflector(dut, reflector)
 
-                            debug(f"kill guest {machine.value} " +
-                                  f"{interface.value} {qemu_name} {vhost} " +
-                                  f"{ioregionfd}")
-                            host.kill_guest()
+                            if machine != Machine.HOST:
+                                debug(f"Killing guest {machine.value} " +
+                                      f"{interface.value} {qemu_name} " +
+                                      f"{vhost} {ioregionfd}")
+                                host.kill_guest()
 
-                debug(f"teardown guest interface {interface.value}")
+                debug(f"Tearing down interface {interface.value}")
                 host.cleanup_network()
 
 
