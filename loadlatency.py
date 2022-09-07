@@ -61,6 +61,8 @@ class LoadLatencyTest(object):
     rate: int
     runtime: int
     repetitions: int
+    warmup: bool
+    cooldown: bool
     outputdir: str
 
     def test_infix(self):
@@ -119,11 +121,26 @@ class LoadLatencyTest(object):
 
     def run(self, loadgen: LoadGen):
         info(f"Running test {self}")
+
+        if self.warmup:
+            # warm-up
+            sleep(10)
+            try:
+                loadgen.run_l2_load_latency(self.mac, 0, 20)
+            except Exception as e:
+                error(f'Failed to run warm-up due to exception: {e}')
+            sleep(25)
+            loadgen.stop_l2_load_latency()
+
         for repetition in range(self.repetitions):
             if self.test_done(repetition):
                 debug(f"Skipping repetition {repetition}, already done")
                 continue
             debug(f'Running repetition {repetition}')
+
+            if self.cooldown:
+                # cool-down
+                sleep(20)
 
             remote_output_file = path_join(loadgen.moongen_dir,
                                            'output.log')
@@ -202,6 +219,8 @@ class LoadLatencyTestGenerator(object):
     rates: set[int]
     runtimes: set[int]
     repetitions: int
+    warmup: bool
+    cooldown: bool
     accumulate: bool
     outputdir: str
 
@@ -219,6 +238,8 @@ class LoadLatencyTestGenerator(object):
         info(f'  rates      : {self.rates}')
         info(f'  runtimes   : {self.runtimes}')
         info(f'  repetitions: {self.repetitions}')
+        info(f'  warmup     : {self.warmup}')
+        info(f'  cooldown   : {self.cooldown}')
         info(f'  accumulate : {self.accumulate}')
         info(f'  outputdir  : {self.outputdir}')
 
@@ -288,6 +309,8 @@ class LoadLatencyTestGenerator(object):
                     rate=rate,
                     runtime=runtime,
                     repetitions=self.repetitions,
+                    warmup=self.warmup,
+                    cooldown=self.cooldown,
                     outputdir=self.outputdir,
                 )
                 tree[rate][runtime] = test
@@ -498,11 +521,12 @@ if __name__ == "__main__":
     rates = {1, 10, 100}
     runtimes = {30, 60}
     repetitions = 3
+    warmup = False
+    cooldown = False
     accumulate = True
     outputdir = "/home/networkadmin/loadlatency"
 
     generator = LoadLatencyTestGenerator(
         machines, interfaces, qemus, vhosts, ioregionfds, reflectors,
-        rates, runtimes, repetitions, accumulate, outputdir
+        rates, runtimes, repetitions, warmup, cooldown, accumulate, outputdir
     )
-    generator.run()

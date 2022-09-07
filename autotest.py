@@ -1189,6 +1189,8 @@ def test_load_lat_file(args: Namespace, conf: ConfigParser) -> None:
             {int(ra.strip()) for ra in tconf['rates'].split(',')},
             {int(rt.strip()) for rt in tconf['runtimes'].split(',')},
             int(tconf['repetitions']),
+            tconf['warmup'] == 'true',
+            tconf['cooldown'] == 'true',
             tconf['accumulate'] == 'true',
             tconf['outputdir']
         )
