@@ -264,6 +264,13 @@ def setup_parser() -> ArgumentParser:
                                   type=FileType('r'),
                                   help='Test configuration file path',
                                   )
+    test_file_parser.add_argument('-d',
+                                  '--dry-run',
+                                  action='store_true',
+                                  default=False,
+                                  help='''Just generate tests, but do not
+                                  run them.''',
+                                  )
     test_cli_parser = subparsers.add_parser(
         'test-load-lat-cli',
         formatter_class=ArgumentDefaultsHelpFormatter,
@@ -1195,7 +1202,10 @@ def test_load_lat_file(args: Namespace, conf: ConfigParser) -> None:
             tconf['outputdir']
         )
         generator.generate(host)
-        generator.run(host, guest, loadgen)
+        if args.dry_run:
+            info('Dry run, not running tests.')
+        else:
+            generator.run(host, guest, loadgen)
 
 
 def test_load_lat_cli(args: Namespace, conf: ConfigParser) -> None:
