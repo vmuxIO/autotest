@@ -59,6 +59,7 @@ class LoadLatencyTest(object):
     ioregionfd: bool
     reflector: Reflector
     rate: int
+    size: int
     runtime: int
     repetitions: int
     warmup: bool
@@ -69,7 +70,7 @@ class LoadLatencyTest(object):
         if self.machine == Machine.HOST:
             return (
                 f"{self.machine.value}_{self.interface.value}" +
-                f"_{self.reflector.value}_{self.rate}kpps" +
+                f"_{self.reflector.value}_{self.rate}kpps_{self.size}B" +
                 f"_{self.runtime}s"
             )
         else:
@@ -77,7 +78,7 @@ class LoadLatencyTest(object):
                 f"{self.machine.value}_{self.interface.value}" +
                 f"_{self.qemu}_vhost{'on' if self.vhost else 'off'}" +
                 f"_ioregionfd{'on' if self.ioregionfd else 'off'}" +
-                f"_{self.reflector.value}_{self.rate}kpps" +
+                f"_{self.reflector.value}_{self.rate}kpps_{self.size}B" +
                 f"_{self.runtime}s"
             )
 
@@ -115,6 +116,7 @@ class LoadLatencyTest(object):
                 f"ioregionfd={self.ioregionfd}, " +
                 f"reflector={self.reflector.value}, " +
                 f"rate={self.rate}, " +
+                f"size={self.size}, " +
                 f"runtime={self.runtime}, " +
                 f"repetitions={self.repetitions}, " +
                 f"outputdir={self.outputdir})")
@@ -150,7 +152,8 @@ class LoadLatencyTest(object):
             try:
                 loadgen.exec(f'rm -f {remote_output_file} ' +
                              f'{remote_histogram_file}')
-                loadgen.run_l2_load_latency(self.mac, self.rate, self.runtime)
+                loadgen.run_l2_load_latency(self.mac, self.rate, self.runtime,
+                                            self.size)
             except Exception as e:
                 error(f'Failed to run test due to exception: {e}')
                 continue
@@ -217,6 +220,7 @@ class LoadLatencyTestGenerator(object):
     ioregionfds: set[bool]
     reflectors: set[Reflector]
     rates: set[int]
+    size: int
     runtimes: set[int]
     repetitions: int
     warmup: bool
@@ -236,6 +240,7 @@ class LoadLatencyTestGenerator(object):
         info(f'  ioregionfds: {self.ioregionfds}')
         info(f'  reflectors : {set(r.value for r in self.reflectors)}')
         info(f'  rates      : {self.rates}')
+        info(f'  size       : {self.size}')
         info(f'  runtimes   : {self.runtimes}')
         info(f'  repetitions: {self.repetitions}')
         info(f'  warmup     : {self.warmup}')
@@ -307,6 +312,7 @@ class LoadLatencyTestGenerator(object):
                     ioregionfd=ioregionfd,
                     reflector=reflector,
                     rate=rate,
+                    size=self.size,
                     runtime=runtime,
                     repetitions=self.repetitions,
                     warmup=self.warmup,
