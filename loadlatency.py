@@ -99,9 +99,9 @@ class LoadLatencyTest(object):
 
     def needed(self):
         for repetition in range(self.repetitions):
-            if self.test_done(repetition):
-                return False
-        return True
+            if not self.test_done(repetition):
+                return True
+        return False
 
     def __str__(self):
         return ("LoadLatencyTest(" +
