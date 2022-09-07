@@ -67,7 +67,7 @@ class LoadLatencyTest(object):
         if self.machine == Machine.HOST:
             return (
                 f"{self.machine.value}_{self.interface.value}" +
-                f"_{self.reflector.value}_{self.rate*10}Mbps" +
+                f"_{self.reflector.value}_{self.rate}kpps" +
                 f"_{self.runtime}s"
             )
         else:
@@ -75,7 +75,7 @@ class LoadLatencyTest(object):
                 f"{self.machine.value}_{self.interface.value}" +
                 f"_{self.qemu}_vhost{'on' if self.vhost else 'off'}" +
                 f"_ioregionfd{'on' if self.ioregionfd else 'off'}" +
-                f"_{self.reflector.value}_{self.rate*10}Mbps" +
+                f"_{self.reflector.value}_{self.rate}kpps" +
                 f"_{self.runtime}s"
             )
 
