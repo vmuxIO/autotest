@@ -11,7 +11,7 @@ from logging import (info, debug, error,
 from colorlog import ColoredFormatter, StreamHandler, getLogger
 from sys import argv, stderr, modules
 from time import sleep
-from os import (access, W_OK)
+from os import (access, R_OK, W_OK)
 from os.path import isdir, isfile, join as path_join
 
 
@@ -82,6 +82,27 @@ def __do_nothing(variable: any) -> None:
     -------
     """
     pass
+
+
+def readable_dir(path: str) -> str:
+    """
+    Check if the given path is a readable directory.
+
+    Parameters
+    ----------
+    path : str
+        The path to check.
+
+    Returns
+    -------
+    str
+        The path if it is a readable directory.
+    """
+    if not isdir(path):
+        raise ArgumentTypeError(f'{path} is not a directory.')
+    if not access(path, R_OK):
+        raise ArgumentTypeError(f'{path} is not readable.')
+    return path
 
 
 def writable_dir(path: str) -> str:
