@@ -336,6 +336,7 @@ class LoadLatencyTestGenerator(object):
                     tree[m][i][q] = {}
                     for v in self.vhosts:
                         tree[m][i][q][v] = {}
+                        # for io in reversed(list(self.ioregionfds)):
                         for io in self.ioregionfds:
                             if io and m != Machine.MICROVM:
                                 continue
