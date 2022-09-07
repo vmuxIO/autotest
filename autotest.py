@@ -259,10 +259,11 @@ def setup_parser() -> ArgumentParser:
         help='Run load latency tests defined in a test config file.'
     )
     test_file_parser.add_argument('-t',
-                                  '--testconfig',
-                                  default='./tests.cfg',
+                                  '--testconfigs',
+                                  default=['./tests.cfg'],
+                                  nargs='+',
                                   type=FileType('r'),
-                                  help='Test configuration file path',
+                                  help='Test configuration file paths',
                                   )
     test_file_parser.add_argument('-d',
                                   '--dry-run',
@@ -1182,30 +1183,37 @@ def test_load_lat_file(args: Namespace, conf: ConfigParser) -> None:
     host, guest, loadgen = create_servers(conf).values()
 
     test_conf = ConfigParser()
-    test_conf.read(args.testconfig.name)
+    for testconfig in args.testconfigs:
+        test_conf_path = testconfig.name if hasattr(testconfig, 'name') \
+            else testconfig
+        test_conf.read(test_conf_path)
 
-    for section in test_conf.sections():
-        tconf = test_conf[section]
-        generator = LoadLatencyTestGenerator(
-            {Machine(m.strip()) for m in tconf['machines'].split(',')},
-            {Interface(i.strip()) for i in tconf['interfaces'].split(',')},
-            {q.strip() for q in tconf['qemus'].split(',')},
-            {v.strip() == 'true' for v in tconf['vhosts'].split(',')},
-            {io.strip() == 'true' for io in tconf['ioregionfds'].split(',')},
-            {Reflector(rf.strip()) for rf in tconf['reflectors'].split(',')},
-            {int(ra.strip()) for ra in tconf['rates'].split(',')},
-            {int(rt.strip()) for rt in tconf['runtimes'].split(',')},
-            int(tconf['repetitions']),
-            tconf['warmup'] == 'true',
-            tconf['cooldown'] == 'true',
-            tconf['accumulate'] == 'true',
-            tconf['outputdir']
-        )
-        generator.generate(host)
-        if args.dry_run:
-            info('Dry run, not running tests.')
-        else:
-            generator.run(host, guest, loadgen)
+        info(f'Running tests from {test_conf_path}')
+
+        for section in test_conf.sections():
+            tconf = test_conf[section]
+            generator = LoadLatencyTestGenerator(
+                {Machine(m.strip()) for m in tconf['machines'].split(',')},
+                {Interface(i.strip()) for i in tconf['interfaces'].split(',')},
+                {q.strip() for q in tconf['qemus'].split(',')},
+                {v.strip() == 'true' for v in tconf['vhosts'].split(',')},
+                {io.strip() == 'true'
+                 for io in tconf['ioregionfds'].split(',')},
+                {Reflector(rf.strip())
+                 for rf in tconf['reflectors'].split(',')},
+                {int(ra.strip()) for ra in tconf['rates'].split(',')},
+                {int(rt.strip()) for rt in tconf['runtimes'].split(',')},
+                int(tconf['repetitions']),
+                tconf['warmup'] == 'true',
+                tconf['cooldown'] == 'true',
+                tconf['accumulate'] == 'true',
+                tconf['outputdir']
+            )
+            generator.generate(host)
+            if args.dry_run:
+                info('Dry run, not running tests.')
+            else:
+                generator.run(host, guest, loadgen)
 
 
 def test_load_lat_cli(args: Namespace, conf: ConfigParser) -> None:
