@@ -1096,6 +1096,7 @@ class Host(Server):
             'netdev=admin1,mac=$(cat ' +
             '/sys/class/net/macvtap1/address)' +
             (',use-ioregionfd=true' if ioregionfd else '')
+            # ' -device rtl8139,id=testif,' +
         )
         qemu_bin_path = 'qemu-system-x86_64'
         if qemu_build_dir:
