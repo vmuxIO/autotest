@@ -1124,6 +1124,16 @@ class Host(Server):
             f' -device virtio-net-{dev_type},id=admif,netdev=admin0,' +
             'mac=52:54:00:fa:00:5f' +
             test_net_config
+            # +
+            # ' -drive id=test1,format=raw,file=/dev/ssd/test1,if=none,' +
+            # 'cache=none' +
+            # f' -device virtio-blk-{dev_type},id=test1,drive=test1' +
+            # ' -drive id=test2,format=raw,file=/dev/ssd/test2,if=none,' +
+            # 'cache=none' +
+            # f' -device virtio-blk-{dev_type},id=test2,drive=test2'
+            # +
+            # ' --trace virtio_mmio_read --trace virtio_mmio_write' +
+            # ' 2>trace.log'
             )
 
     def kill_guest(self: 'Host') -> None:
