@@ -1304,6 +1304,7 @@ class LoadGen(Server):
                             mac: str,
                             rate: int = 10000,
                             runtime: int = 60,
+                            size: int = 60,
                             histfile: str = 'histogram.csv',
                             outfile: str = 'output.log'
                             ):
@@ -1318,6 +1319,8 @@ class LoadGen(Server):
             The rate of the test in Mbps.
         runtime : int
             The runtime of the test in seconds.
+        size : int
+            The size of the packets in bytes.
         histfile : str
             The path of the histogram file.
         outfile : str
@@ -1338,7 +1341,7 @@ class LoadGen(Server):
         self.tmux_new('loadlatency', f'cd {self.moongen_dir}; ' +
                       f'sudo LD_PRELOAD={tbbmalloc_path} ' +
                       'build/MoonGen examples/l2-load-latency.lua ' +
-                      f'-r {rate} -f {histfile} -t {runtime} ' +
+                      f'-r {rate} -f {histfile} -t {runtime} -s {size} ' +
                       f'{self._test_iface_id} {mac} ' +
                       f'2>&1 > {outfile}')
 
