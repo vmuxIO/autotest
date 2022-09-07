@@ -6,7 +6,7 @@ from argparse import (ArgumentParser, ArgumentDefaultsHelpFormatter, Namespace,
                       FileType, ArgumentTypeError)
 from argcomplete import autocomplete
 from configparser import ConfigParser
-from logging import (info, debug, error,
+from logging import (info, debug, error, warning,
                      DEBUG, INFO, WARN, ERROR)
 from colorlog import ColoredFormatter, StreamHandler, getLogger
 from sys import argv, stderr, modules
@@ -338,6 +338,12 @@ def setup_parser() -> ArgumentParser:
                                  default=False,
                                  help='Accumulate the histograms of the ' +
                                       'repetitions.',
+                                 )
+    test_cli_parser.add_argument('--yes-i-want-to-run-this',
+                                 action='store_true',
+                                 default=False,
+                                 help='''Confirm that you want to run this
+                                      deprecated code.''',
                                  )
     # TODO maybe we want to alter test parameters directly via the arguments
 
@@ -1206,6 +1212,12 @@ def test_load_lat_cli(args: Namespace, conf: ConfigParser) -> None:
     Returns
     -------
     """
+    warning('This command uses deprecated code. Please consider using the ' +
+            'test-load-lat-file command instead.')
+    if not args.yes_i_want_to_run_this:
+        error('This command is deprecated and can only be run with ' +
+              '--yes-i-want-to-run-this')
+        return
     test_load_latency(
         args.name,
         args.interfaces,
