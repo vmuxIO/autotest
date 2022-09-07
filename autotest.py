@@ -223,6 +223,12 @@ def setup_parser() -> ArgumentParser:
                                   help='''Use the IORegionFD enhanced
                                   virtio-net-device for the test interface.'''
                                   )
+    run_guest_parser.add_argument('-q',
+                                  '--qemu-path',
+                                  type=str,
+                                  default='/home/networkadmin/qemu_build',
+                                  help='QEMU build path',
+                                  )
     kill_guest_parser = subparsers.add_parser(
         'kill-guest',
         formatter_class=ArgumentDefaultsHelpFormatter,
@@ -618,7 +624,7 @@ def run_guest(args: Namespace, conf: ConfigParser) -> None:
         disk = args.disk if args.disk else None
 
         host.run_guest(args.interface, args.machine, disk, args.debug,
-                       args.ioregionfd)
+                       args.ioregionfd, args.qemu_path)
     except Exception:
         host.kill_guest()
         host.cleanup_network()
