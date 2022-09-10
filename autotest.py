@@ -272,6 +272,19 @@ def setup_parser() -> ArgumentParser:
                                   help='''Just generate tests, but do not
                                   run them.''',
                                   )
+    acc_file_parser = subparsers.add_parser(
+        'acc-load-lat-file',
+        formatter_class=ArgumentDefaultsHelpFormatter,
+        help='Force accumulation of all load latency tests defined in a ' +
+        'test config file.'
+    )
+    acc_file_parser.add_argument('-t',
+                                 '--testconfigs',
+                                 default=['./tests.cfg'],
+                                 nargs='+',
+                                 type=FileType('r'),
+                                 help='Test configuration file paths',
+                                 )
     test_cli_parser = subparsers.add_parser(
         'test-load-lat-cli',
         formatter_class=ArgumentDefaultsHelpFormatter,
@@ -1217,6 +1230,46 @@ def test_load_lat_file(args: Namespace, conf: ConfigParser) -> None:
                 info('Dry run, not running tests.')
             else:
                 generator.run(host, guest, loadgen)
+
+
+def acc_load_lat_file(args: Namespace, conf: ConfigParser) -> None:
+    host: Host
+    guest: Guest
+    loadgen: LoadGen
+    host, guest, loadgen = create_servers(conf).values()
+
+    test_conf = ConfigParser()
+    for testconfig in args.testconfigs:
+        test_conf_path = testconfig.name if hasattr(testconfig, 'name') \
+            else testconfig
+        test_conf.read(test_conf_path)
+
+        info(f'Accumulating tests from {test_conf_path}')
+
+        for section in test_conf.sections():
+            info(f'Accumulating tests from section {section}')
+
+            tconf = test_conf[section]
+            generator = LoadLatencyTestGenerator(
+                {Machine(m.strip()) for m in tconf['machines'].split(',')},
+                {Interface(i.strip()) for i in tconf['interfaces'].split(',')},
+                {q.strip() for q in tconf['qemus'].split(',')},
+                {v.strip() == 'true' for v in tconf['vhosts'].split(',')},
+                {io.strip() == 'true'
+                 for io in tconf['ioregionfds'].split(',')},
+                {Reflector(rf.strip())
+                 for rf in tconf['reflectors'].split(',')},
+                {int(ra.strip()) for ra in tconf['rates'].split(',')},
+                int(tconf['size']),
+                {int(rt.strip()) for rt in tconf['runtimes'].split(',')},
+                int(tconf['repetitions']),
+                tconf['warmup'] == 'true',
+                tconf['cooldown'] == 'true',
+                tconf['accumulate'] == 'true',
+                tconf['outputdir']
+            )
+            generator.generate(host)
+            generator.force_accumulate()
 
 
 def test_load_lat_cli(args: Namespace, conf: ConfigParser) -> None:

@@ -177,7 +177,7 @@ class LoadLatencyTest(object):
             loadgen.copy_from(remote_histogram_file,
                               self.histogram_filepath(repetition))
 
-    def accumulate(self):
+    def accumulate(self, force: bool = False):
         assert self.repetitions > 0, 'Reps must be greater than 0.'
         if self.repetitions == 1:
             debug('Skipping accumulation, there is only one repetition.')
@@ -185,7 +185,7 @@ class LoadLatencyTest(object):
 
         acc_hist_filename = f'acc_histogram_{self.test_infix()}.csv'
         acc_hist_filepath = path_join(self.outputdir, acc_hist_filename)
-        if isfile(acc_hist_filepath):
+        if not force and isfile(acc_hist_filepath):
             debug('Skipping accumulation, already done.')
             return
 
@@ -514,6 +514,21 @@ class LoadLatencyTestGenerator(object):
 
                 debug(f"Tearing down interface {interface.value}")
                 host.cleanup_network()
+
+    def force_accumulate(self):
+        """
+        Force accumulation of all tests
+        """
+        for machine, mtree in self.full_test_tree.items():
+            for interface, itree in mtree.items():
+                for qemu, qtree in itree.items():
+                    for vhost, vtree in qtree.items():
+                        for ioregionfd, ftree in vtree.items():
+                            for reflector, rtree in ftree.items():
+                                for rate, atree in rtree.items():
+                                    for runtime, test in atree.items():
+                                        if self.accumulate:
+                                            test.accumulate(force=True)
 
 
 if __name__ == "__main__":
