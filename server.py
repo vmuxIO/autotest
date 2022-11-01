@@ -1048,7 +1048,9 @@ class Host(Server):
                   debug_qemu: bool = False,
                   ioregionfd: bool = False,
                   qemu_build_dir: str = None,
-                  vhost: bool = True
+                  vhost: bool = True,
+                  rx_queue_size: int = 256,
+                  tx_queue_size: int = 256,
                   ) -> None:
         # TODO this function should get a Guest object as argument
         """
@@ -1073,6 +1075,10 @@ class Host(Server):
             the installed Qemu.
         vhost : bool
             True if you want to use vhost on the test interface.
+        rx_queue_size : int
+            Size of the receive queue for the test interface.
+        tx_queue_size : int
+            Size of the transmit queue for the test interface.
 
         Returns
         -------
@@ -1088,6 +1094,11 @@ class Host(Server):
             f' -device virtio-net-{dev_type},id=testif,netdev=admin1,' +
             'mac=52:54:00:fa:00:60,mq=on' +
             (',use-ioregionfd=true' if ioregionfd else '')
+            + f',rx_queue_size={rx_queue_size},tx_queue_size={tx_queue_size}'
+            # + f',rx_queue_size={rx_queue_size},tx_queue_size={tx_queue_size}'
+            # f' -device virtio-net-{dev_type},id=testif,' +
+            # ' -device rtl8139,id=testif,' +
+            # 'netdev=admin1,mac=52:54:00:fa:00:60,mq=on' +
         ) if net_type == 'brtap' else (
             f" -netdev tap,vhost={'on' if vhost else 'off'}," +
             'id=admin1,fd=3 3<>/dev/tap$(cat ' +
@@ -1096,6 +1107,9 @@ class Host(Server):
             'netdev=admin1,mac=$(cat ' +
             '/sys/class/net/macvtap1/address)' +
             (',use-ioregionfd=true' if ioregionfd else '')
+            + f',rx_queue_size={rx_queue_size},tx_queue_size={tx_queue_size}'
+            # + f',rx_queue_size={rx_queue_size},tx_queue_size={tx_queue_size}'
+            # f' -device virtio-net-{dev_type},id=testif,' +
             # ' -device rtl8139,id=testif,' +
         )
         qemu_bin_path = 'qemu-system-x86_64'
@@ -1116,6 +1130,8 @@ class Host(Server):
             f' -drive id=root,format=raw,file={disk_path},if=none,' +
             'cache=none' +
             f' -device virtio-blk-{dev_type},id=rootdisk,drive=root' +
+            (',use-ioregionfd=true' if ioregionfd else '')
+            + f',queue-size={rx_queue_size}'
             ' -cdrom /home/networkadmin/images/guest_init.iso' +
             ' -serial stdio' +
             ' -monitor tcp:127.0.0.1:2345,server,nowait' +
