@@ -53,5 +53,7 @@
     "xargs",
     "xdpgeneric"
   ],
-  "cSpell.enabled": true
+  "cSpell.enabled": true,
+  "python.linting.flake8Enabled": true,
+  "python.linting.enabled": true
 }
