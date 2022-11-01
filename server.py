@@ -1091,8 +1091,8 @@ class Host(Server):
             f" -netdev tap,vhost={'on' if vhost else 'off'}," +
             'id=admin1,ifname=tap1,script=no,' +
             'downscript=no,queues=4' +
-            f' -device virtio-net-{dev_type},id=testif,netdev=admin1,' +
-            'mac=52:54:00:fa:00:60,mq=on' +
+            f' -device virtio-net-{dev_type},id=testif,' +
+            'netdev=admin1,mac=52:54:00:fa:00:60,mq=on' +
             (',use-ioregionfd=true' if ioregionfd else '')
             + f',rx_queue_size={rx_queue_size},tx_queue_size={tx_queue_size}'
             # + f',rx_queue_size={rx_queue_size},tx_queue_size={tx_queue_size}'
