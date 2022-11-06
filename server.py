@@ -912,6 +912,23 @@ class Host(Server):
         self.guest_test_iface_mac = guest_test_iface_mac
         self.guest_root_disk_path = guest_root_disk_path
 
+   def setup_admin_bridge(self: 'Host'):
+        """
+        Setup the admin bridge.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        """
+        self.exec('sudo modprobe bridge')
+        self.exec(f'sudo ip link show {self.admin_iface} 2>/dev/null' +
+                  f' || (sudo ip link add {self.admin_iface} type bridge; ' +
+                  f'sudo ip addr add {self.admin_iface_ip_net} ' +
+                  f'dev {self.admin_iface}; true)')
+        self.exec(f'sudo ip link set {self.admin_iface} up')
+
     def setup_admin_tap(self: 'Host'):
         """
         Setup the admin tap.
