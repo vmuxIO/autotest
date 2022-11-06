@@ -997,25 +997,31 @@ class Host(Server):
         -------
         """
         # load kernel modules
-        self.exec('sudo modprobe tun tap')
+        self.exec('sudo modprobe bridge tun tap')
 
         # create bridge and tap device
-        self.exec('sudo ip link show br1 2>/dev/null || sudo brctl addbr br1')
-        self.exec('sudo ip link show tap1 2>/dev/null || ' +
-                  'sudo ip tuntap add dev tap1 mode tap user networkadmin ' +
-                  'multi_queue')
+        self.exec(f'sudo ip link show {self.test_bridge} 2>/dev/null ' +
+                  f' || (sudo ip link add {self.test_bridge} type bridge; ' +
+                  'true)')
+        username = self.whoami()
+        self.exec(f'sudo ip link show {self.test_tap} 2>/dev/null || ' +
+                  f'(sudo ip tuntap add dev {self.test_tap} mode tap ' +
+                  f'user {username} multi_queue; true)')
 
         # add tap device and physical nic to bridge
-        tap1_output = self.exec('sudo ip link show tap1')
-        if 'master br1' not in tap1_output:
-            self.exec('sudo brctl addif br1 tap1')
+        tap_output = self.exec(f'sudo ip link show {self.test_tap}')
+        if f'master {self.test_bridge}' not in tap_output:
+            self.exec(f'sudo ip link set {self.test_tap} ' +
+                      f'master {self.test_bridge}')
         test_iface_output = self.exec(f'sudo ip link show {self.test_iface}')
-        if 'master br1' not in test_iface_output:
-            self.exec(f'sudo brctl addif br1 {self.test_iface}')
+        if f'master {self.test_bridge}' not in test_iface_output:
+            self.exec(f'sudo ip link set {self.test_iface} ' +
+                      f'master {self.test_bridge}')
 
         # bring up all interfaces (nic, bridge and tap)
         self.exec(f'sudo ip link set {self.test_iface} up ' +
-                  '&& sudo ip link set br1 up && sudo ip link set tap1 up')
+                  f'&& sudo ip link set {self.test_bridge} up ' +
+                  f'&& sudo ip link set {self.test_tap} up')
 
     def destroy_br_tap(self: 'Host'):
         """
