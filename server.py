@@ -845,6 +845,9 @@ class Host(Server):
     admin_bridge: str
     admin_bridge_ip_net: str
     admin_tap: str
+    test_bridge: str
+    test_tap: str
+    test_macvtap: str
     guest_test_iface_mac: str
     guest_root_disk_path: str
 
@@ -857,6 +860,9 @@ class Host(Server):
                  test_iface_addr: str,
                  test_iface_mac: str,
                  test_iface_driv: str,
+                 test_bridge: str,
+                 test_tap: str,
+                 test_macvtap: str,
                  guest_root_disk_path: str,
                  guest_test_iface_mac: str,
                  moongen_dir: str,
@@ -883,6 +889,12 @@ class Host(Server):
             The MAC address of the test interface.
         test_iface_driv : str
             The driver of the test interface.
+        test_bridge : str
+            The network interface identifier of the test bridge interface.
+        test_tap : str
+            The network interface identifier of the test tap interface.
+        test_macvtap : str
+            The network interface identifier of the test macvtap interface.
         guest_root_disk_path : str
             The path to the root disk of the guest.
         guest_test_iface_mac : str
@@ -914,6 +926,9 @@ class Host(Server):
         self.admin_bridge = admin_bridge
         self.admin_bridge_ip_net = admin_bridge_ip_net
         self.admin_tap = admin_tap
+        self.test_bridge = test_bridge
+        self.test_tap = test_tap
+        self.test_macvtap = test_macvtap
         self.guest_test_iface_mac = guest_test_iface_mac
         self.guest_root_disk_path = guest_root_disk_path
 
