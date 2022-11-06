@@ -844,6 +844,7 @@ class Host(Server):
     """
     admin_bridge: str
     admin_bridge_ip_net: str
+    admin_tap: str
     guest_test_iface_mac: str
     guest_root_disk_path: str
 
@@ -851,6 +852,7 @@ class Host(Server):
                  fqdn: str,
                  admin_bridge: str,
                  admin_bridge_ip_net: str,
+                 admin_tap: str,
                  test_iface: str,
                  test_iface_addr: str,
                  test_iface_mac: str,
@@ -871,6 +873,8 @@ class Host(Server):
             The network interface identifier of the admin bridge interface.
         admin_bridge_ip_net : str
             The IP address and subnet mask of the admin bridge interface.
+        admin_tap : str
+            The network interface identifier of the admin tap interface.
         test_iface : str
             The name of the test interface.
         test_iface_addr : str
@@ -909,6 +913,7 @@ class Host(Server):
                          localhost)
         self.admin_bridge = admin_bridge
         self.admin_bridge_ip_net = admin_bridge_ip_net
+        self.admin_tap = admin_tap
         self.guest_test_iface_mac = guest_test_iface_mac
         self.guest_root_disk_path = guest_root_disk_path
 
