@@ -209,6 +209,20 @@ class Server(ABC):
         else:
             return self.__exec_ssh(command)
 
+    def whoami(self: 'Server') -> str:
+        """
+        Get the user name.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        str
+            The user name.
+        """
+        return self.exec('whoami').strip()
+
     def tmux_new(self: 'Server', session_name: str, command: str) -> None:
         """
         Start a tmux session on the server.
