@@ -948,10 +948,11 @@ class Host(Server):
         -------
         """
         self.exec('sudo modprobe tun tap')
-        self.exec('sudo ip link show tap0 2>/dev/null' +
-                  ' || (sudo tunctl -t tap0 -u networkadmin' +
-                  ' && sudo brctl addif br0 tap0; true)')
-        self.exec('sudo ip link set tap0 up')
+        self.exec(f'sudo ip link show {self.admin_tap} 2>/dev/null' +
+                  f' || (sudo ip tuntap add {self.admin_tap} mode tap;' +
+                  f' sudo ip link set {self.admin_tap} '
+                  f'master {self.admin_bridge}; true)')
+        self.exec(f'sudo ip link set {self.admin_tap} up')
 
     def setup_test_br_tap(self: 'Host'):
         """
