@@ -842,11 +842,15 @@ class Host(Server):
     >>> Host('server.test.de')
     Host(fqdn='server.test.de')
     """
+    admin_iface: str
+    admin_iface_ip_net: str
     guest_test_iface_mac: str
     guest_root_disk_path: str
 
     def __init__(self: 'Host',
                  fqdn: str,
+                 admin_iface: str,
+                 admin_iface_ip_net: str,
                  test_iface: str,
                  test_iface_addr: str,
                  test_iface_mac: str,
@@ -863,6 +867,10 @@ class Host(Server):
         ----------
         fqdn : str
             The fully qualified domain name of the host.
+        admin_iface : str
+            The network interface identifier of the admin bridge interface.
+        admin_iface_ip_net : str
+            The IP address and subnet mask of the admin bridge interface.
         test_iface : str
             The name of the test interface.
         test_iface_addr : str
@@ -899,6 +907,8 @@ class Host(Server):
         super().__init__(fqdn, test_iface, test_iface_addr, test_iface_mac,
                          test_iface_driv, moongen_dir, xdp_reflector_dir,
                          localhost)
+        self.admin_iface = admin_iface
+        self.admin_iface_ip_net = admin_iface_ip_net
         self.guest_test_iface_mac = guest_test_iface_mac
         self.guest_root_disk_path = guest_root_disk_path
 

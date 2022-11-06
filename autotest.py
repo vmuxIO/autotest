@@ -569,6 +569,8 @@ def create_servers(conf: ConfigParser,
     if host:
         servers['host'] = Host(
             conf['host']['fqdn'],
+            conf['host']['admin_iface'],
+            conf['host']['admin_iface_ip_net'],
             conf['host']['test_iface'],
             conf['host']['test_iface_addr'],
             conf['host']['test_iface_mac'],
