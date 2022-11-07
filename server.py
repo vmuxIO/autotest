@@ -1023,7 +1023,7 @@ class Host(Server):
                   f'&& sudo ip link set {self.test_bridge} up ' +
                   f'&& sudo ip link set {self.test_tap} up')
 
-    def destroy_br_tap(self: 'Host'):
+    def destroy_test_br_tap(self: 'Host'):
         """
         Destroy the bridged test tap device.
 
@@ -1033,10 +1033,8 @@ class Host(Server):
         Returns
         -------
         """
-        self.exec('sudo ip link set tap1 down')
-        self.exec('sudo brctl delif br1 tap1')
-        self.exec('sudo ip link delete tap1')
-        self.exec('sudo brctl delbr br1')
+        self.exec(f'sudo ip link delete {self.test_tap} || true')
+        self.exec(f'sudo ip link delete {self.test_bridge} || true')
 
     def setup_test_macvtap(self: 'Host'):
         """
