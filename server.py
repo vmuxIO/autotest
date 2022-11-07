@@ -209,6 +209,20 @@ class Server(ABC):
         else:
             return self.__exec_ssh(command)
 
+    def whoami(self: 'Server') -> str:
+        """
+        Get the user name.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        str
+            The user name.
+        """
+        return self.exec('whoami').strip()
+
     def tmux_new(self: 'Server', session_name: str, command: str) -> None:
         """
         Start a tmux session on the server.
@@ -842,15 +856,27 @@ class Host(Server):
     >>> Host('server.test.de')
     Host(fqdn='server.test.de')
     """
+    admin_bridge: str
+    admin_bridge_ip_net: str
+    admin_tap: str
+    test_bridge: str
+    test_tap: str
+    test_macvtap: str
     guest_test_iface_mac: str
     guest_root_disk_path: str
 
     def __init__(self: 'Host',
                  fqdn: str,
+                 admin_bridge: str,
+                 admin_bridge_ip_net: str,
+                 admin_tap: str,
                  test_iface: str,
                  test_iface_addr: str,
                  test_iface_mac: str,
                  test_iface_driv: str,
+                 test_bridge: str,
+                 test_tap: str,
+                 test_macvtap: str,
                  guest_root_disk_path: str,
                  guest_test_iface_mac: str,
                  moongen_dir: str,
@@ -863,6 +889,12 @@ class Host(Server):
         ----------
         fqdn : str
             The fully qualified domain name of the host.
+        admin_bridge : str
+            The network interface identifier of the admin bridge interface.
+        admin_bridge_ip_net : str
+            The IP address and subnet mask of the admin bridge interface.
+        admin_tap : str
+            The network interface identifier of the admin tap interface.
         test_iface : str
             The name of the test interface.
         test_iface_addr : str
@@ -871,6 +903,12 @@ class Host(Server):
             The MAC address of the test interface.
         test_iface_driv : str
             The driver of the test interface.
+        test_bridge : str
+            The network interface identifier of the test bridge interface.
+        test_tap : str
+            The network interface identifier of the test tap interface.
+        test_macvtap : str
+            The network interface identifier of the test macvtap interface.
         guest_root_disk_path : str
             The path to the root disk of the guest.
         guest_test_iface_mac : str
@@ -899,8 +937,31 @@ class Host(Server):
         super().__init__(fqdn, test_iface, test_iface_addr, test_iface_mac,
                          test_iface_driv, moongen_dir, xdp_reflector_dir,
                          localhost)
+        self.admin_bridge = admin_bridge
+        self.admin_bridge_ip_net = admin_bridge_ip_net
+        self.admin_tap = admin_tap
+        self.test_bridge = test_bridge
+        self.test_tap = test_tap
+        self.test_macvtap = test_macvtap
         self.guest_test_iface_mac = guest_test_iface_mac
         self.guest_root_disk_path = guest_root_disk_path
+
+    def setup_admin_bridge(self: 'Host'):
+        """
+        Setup the admin bridge.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        """
+        self.exec('sudo modprobe bridge')
+        self.exec(f'sudo ip link show {self.admin_bridge} 2>/dev/null' +
+                  f' || (sudo ip link add {self.admin_bridge} type bridge; ' +
+                  f'sudo ip addr add {self.admin_bridge_ip_net} ' +
+                  f'dev {self.admin_bridge}; true)')
+        self.exec(f'sudo ip link set {self.admin_bridge} up')
 
     def setup_admin_tap(self: 'Host'):
         """
@@ -916,10 +977,11 @@ class Host(Server):
         -------
         """
         self.exec('sudo modprobe tun tap')
-        self.exec('sudo ip link show tap0 2>/dev/null' +
-                  ' || (sudo tunctl -t tap0 -u networkadmin' +
-                  ' && sudo brctl addif br0 tap0; true)')
-        self.exec('sudo ip link set tap0 up')
+        self.exec(f'sudo ip link show {self.admin_tap} 2>/dev/null' +
+                  f' || (sudo ip tuntap add {self.admin_tap} mode tap;' +
+                  f' sudo ip link set {self.admin_tap} '
+                  f'master {self.admin_bridge}; true)')
+        self.exec(f'sudo ip link set {self.admin_tap} up')
 
     def setup_test_br_tap(self: 'Host'):
         """
@@ -935,27 +997,33 @@ class Host(Server):
         -------
         """
         # load kernel modules
-        self.exec('sudo modprobe tun tap')
+        self.exec('sudo modprobe bridge tun tap')
 
         # create bridge and tap device
-        self.exec('sudo ip link show br1 2>/dev/null || sudo brctl addbr br1')
-        self.exec('sudo ip link show tap1 2>/dev/null || ' +
-                  'sudo ip tuntap add dev tap1 mode tap user networkadmin ' +
-                  'multi_queue')
+        self.exec(f'sudo ip link show {self.test_bridge} 2>/dev/null ' +
+                  f' || (sudo ip link add {self.test_bridge} type bridge; ' +
+                  'true)')
+        username = self.whoami()
+        self.exec(f'sudo ip link show {self.test_tap} 2>/dev/null || ' +
+                  f'(sudo ip tuntap add dev {self.test_tap} mode tap ' +
+                  f'user {username} multi_queue; true)')
 
         # add tap device and physical nic to bridge
-        tap1_output = self.exec('sudo ip link show tap1')
-        if 'master br1' not in tap1_output:
-            self.exec('sudo brctl addif br1 tap1')
+        tap_output = self.exec(f'sudo ip link show {self.test_tap}')
+        if f'master {self.test_bridge}' not in tap_output:
+            self.exec(f'sudo ip link set {self.test_tap} ' +
+                      f'master {self.test_bridge}')
         test_iface_output = self.exec(f'sudo ip link show {self.test_iface}')
-        if 'master br1' not in test_iface_output:
-            self.exec(f'sudo brctl addif br1 {self.test_iface}')
+        if f'master {self.test_bridge}' not in test_iface_output:
+            self.exec(f'sudo ip link set {self.test_iface} ' +
+                      f'master {self.test_bridge}')
 
         # bring up all interfaces (nic, bridge and tap)
         self.exec(f'sudo ip link set {self.test_iface} up ' +
-                  '&& sudo ip link set br1 up && sudo ip link set tap1 up')
+                  f'&& sudo ip link set {self.test_bridge} up ' +
+                  f'&& sudo ip link set {self.test_tap} up')
 
-    def destroy_br_tap(self: 'Host'):
+    def destroy_test_br_tap(self: 'Host'):
         """
         Destroy the bridged test tap device.
 
@@ -965,10 +1033,8 @@ class Host(Server):
         Returns
         -------
         """
-        self.exec('sudo ip link set tap1 down')
-        self.exec('sudo brctl delif br1 tap1')
-        self.exec('sudo ip link delete tap1')
-        self.exec('sudo brctl delbr br1')
+        self.exec(f'sudo ip link delete {self.test_tap} || true')
+        self.exec(f'sudo ip link delete {self.test_bridge} || true')
 
     def setup_test_macvtap(self: 'Host'):
         """
@@ -983,16 +1049,17 @@ class Host(Server):
         Returns
         -------
         """
-        self.exec('sudo ip link show macvtap1 2>/dev/null' +
-                  ' || sudo ip link add link enp176s0 name macvtap1' +
-                  ' type macvtap')
-        self.exec('sudo ip link set macvtap1 address ' +
+        self.exec('sudo modprobe macvlan')
+        self.exec(f'sudo ip link show {self.test_macvtap} 2>/dev/null' +
+                  f' || sudo ip link add link {self.test_iface}' +
+                  f' name {self.test_macvtap} type macvtap')
+        self.exec(f'sudo ip link set {self.test_macvtap} address ' +
                   f'{self.guest_test_iface_mac} up')
-        self.exec('sudo ip link set enp176s0 up')
         self.exec('sudo chmod 666' +
-                  ' /dev/tap$(cat /sys/class/net/macvtap1/ifindex)')
+                  f' /dev/tap$(cat /sys/class/net/{self.test_macvtap}/ifindex)'
+                  )
 
-    def destroy_macvtap(self: 'Host'):
+    def destroy_test_macvtap(self: 'Host'):
         """
         Destroy the macvtap test interface.
 
@@ -1002,44 +1069,7 @@ class Host(Server):
         Returns
         -------
         """
-        self.exec('sudo ip link delete macvtap1')
-
-    def setup_test_bridge(self: 'Host'):
-        """
-        Setup test bridge.
-
-        This sets up a bridge device for the test interface of the host.
-
-        Parameters
-        ----------
-        mac : str
-            The MAC address for the test bridge.
-        """
-        # load kernel modules
-        self.exec('sudo modprobe tun tap')
-
-        # create bridge
-        self.exec('sudo ip link show br1 2>/dev/null || sudo brctl addbr br1')
-
-        # set bridge's MAC address
-        self.exec('sudo ip link set br1 down && ' +
-                  f'sudo ip link set br1 address {self.guest_test_iface_mac}')
-
-        # add tap device and physical nic to bridge
-        test_iface_output = self.exec(f'sudo ip link show {self.test_iface}')
-        if 'master br1' not in test_iface_output:
-            self.exec(f'sudo brctl addif br1 {self.test_iface}')
-
-        # bring up all interfaces (nic and bridge)
-        self.exec(f'sudo ip link set {self.test_iface} up' +
-                  ' && sudo ip link set br1 up')
-
-    def destroy_test_bridge(self: 'Host'):
-        """
-        Destroy the test bridge.
-        """
-        self.exec('sudo ip link set br1 down')
-        self.exec('sudo brctl delbr br1')
+        self.exec(f'sudo ip link delete {self.test_macvtap} || true')
 
     def run_guest(self: 'Host',
                   net_type: str,
@@ -1174,11 +1204,11 @@ class Host(Server):
         Returns
         -------
         """
-        self.release_test_iface()
+        # TODO
+        # self.release_test_iface()
         self.stop_xdp_reflector(self.test_iface)
-        self.exec('sudo ip link delete tap1 2>/dev/null || true')
-        self.exec('sudo ip link delete br1 2>/dev/null || true')
-        self.exec('sudo ip link delete macvtap1 2>/dev/null || true')
+        self.destroy_test_br_tap()
+        self.destroy_test_macvtap()
 
 
 class Guest(Server):

@@ -569,10 +569,16 @@ def create_servers(conf: ConfigParser,
     if host:
         servers['host'] = Host(
             conf['host']['fqdn'],
+            conf['host']['admin_bridge'],
+            conf['host']['admin_bridge_ip_net'],
+            conf['host']['admin_tap'],
             conf['host']['test_iface'],
             conf['host']['test_iface_addr'],
             conf['host']['test_iface_mac'],
             conf['host']['test_iface_driv'],
+            conf['host']['test_bridge'],
+            conf['host']['test_tap'],
+            conf['host']['test_macvtap'],
             conf['guest']['root_disk_file'],
             conf['guest']['test_iface_mac'],
             conf['host']['moongen_dir'],
@@ -732,12 +738,14 @@ def setup_network(args: Namespace, conf: ConfigParser) -> None:
     host: Host = create_servers(conf, guest=False, loadgen=False)['host']
 
     try:
+        host.setup_admin_bridge()
         host.setup_admin_tap()
         if args.interface == 'brtap':
             host.setup_test_br_tap()
         else:
             host.setup_test_macvtap()
     except Exception:
+        error('Failed to setup network')
         host.cleanup_network()
 
 
