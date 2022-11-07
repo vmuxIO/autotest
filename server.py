@@ -1049,14 +1049,15 @@ class Host(Server):
         Returns
         -------
         """
-        self.exec('sudo ip link show macvtap1 2>/dev/null' +
-                  ' || sudo ip link add link enp176s0 name macvtap1' +
-                  ' type macvtap')
-        self.exec('sudo ip link set macvtap1 address ' +
+        self.exec('sudo modprobe macvlan')
+        self.exec(f'sudo ip link show {self.test_macvtap} 2>/dev/null' +
+                  f' || sudo ip link add link {self.test_iface}' +
+                  f' name {self.test_macvtap} type macvtap')
+        self.exec(f'sudo ip link set {self.test_macvtap} address ' +
                   f'{self.guest_test_iface_mac} up')
-        self.exec('sudo ip link set enp176s0 up')
         self.exec('sudo chmod 666' +
-                  ' /dev/tap$(cat /sys/class/net/macvtap1/ifindex)')
+                  f' /dev/tap$(cat /sys/class/net/{self.test_macvtap}/ifindex)'
+                  )
 
     def destroy_macvtap(self: 'Host'):
         """
