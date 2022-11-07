@@ -1059,7 +1059,7 @@ class Host(Server):
                   f' /dev/tap$(cat /sys/class/net/{self.test_macvtap}/ifindex)'
                   )
 
-    def destroy_macvtap(self: 'Host'):
+    def destroy_test_macvtap(self: 'Host'):
         """
         Destroy the macvtap test interface.
 
@@ -1069,44 +1069,7 @@ class Host(Server):
         Returns
         -------
         """
-        self.exec('sudo ip link delete macvtap1')
-
-    def setup_test_bridge(self: 'Host'):
-        """
-        Setup test bridge.
-
-        This sets up a bridge device for the test interface of the host.
-
-        Parameters
-        ----------
-        mac : str
-            The MAC address for the test bridge.
-        """
-        # load kernel modules
-        self.exec('sudo modprobe tun tap')
-
-        # create bridge
-        self.exec('sudo ip link show br1 2>/dev/null || sudo brctl addbr br1')
-
-        # set bridge's MAC address
-        self.exec('sudo ip link set br1 down && ' +
-                  f'sudo ip link set br1 address {self.guest_test_iface_mac}')
-
-        # add tap device and physical nic to bridge
-        test_iface_output = self.exec(f'sudo ip link show {self.test_iface}')
-        if 'master br1' not in test_iface_output:
-            self.exec(f'sudo brctl addif br1 {self.test_iface}')
-
-        # bring up all interfaces (nic and bridge)
-        self.exec(f'sudo ip link set {self.test_iface} up' +
-                  ' && sudo ip link set br1 up')
-
-    def destroy_test_bridge(self: 'Host'):
-        """
-        Destroy the test bridge.
-        """
-        self.exec('sudo ip link set br1 down')
-        self.exec('sudo brctl delbr br1')
+        self.exec(f'sudo ip link delete {self.test_macvtap} || true')
 
     def run_guest(self: 'Host',
                   net_type: str,
