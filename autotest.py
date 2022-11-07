@@ -738,6 +738,7 @@ def setup_network(args: Namespace, conf: ConfigParser) -> None:
     host: Host = create_servers(conf, guest=False, loadgen=False)['host']
 
     try:
+        host.setup_admin_bridge()
         host.setup_admin_tap()
         if args.interface == 'brtap':
             host.setup_test_br_tap()
