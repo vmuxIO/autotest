@@ -745,6 +745,7 @@ def setup_network(args: Namespace, conf: ConfigParser) -> None:
         else:
             host.setup_test_macvtap()
     except Exception:
+        error('Failed to setup network')
         host.cleanup_network()
 
 
