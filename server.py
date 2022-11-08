@@ -625,7 +625,12 @@ class Server(ABC):
         Returns
         -------
         """
-        _ = self.exec(f'cd {self.moongen_dir}; sudo ./bind-interfaces.sh')
+        cmd = f'cd {self.moongen_dir}; sudo ./bind-interfaces.sh'
+
+        if self.nixos:
+            _ = self.exec(f'nix-shell -p dpdk --run "{cmd}"')
+        else:
+            _ = self.exec(cmd)
 
     def bind_test_iface(self: 'Server') -> None:
         """
