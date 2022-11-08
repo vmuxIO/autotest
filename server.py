@@ -91,6 +91,7 @@ class Server(ABC):
         __init__ : Initialize the object.
         """
         self.localhost = self.fqdn == 'localhost' or self.fqdn == getfqdn()
+        self.nixos = self.isfile('/etc/NIXOS')
 
     def log_name(self: 'Server') -> str:
         """
