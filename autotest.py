@@ -384,10 +384,17 @@ def setup_parser() -> ArgumentParser:
                                       deprecated code.''',
                                  )
     # TODO maybe we want to alter test parameters directly via the arguments
+    shell_parser = subparsers.add_parser(
+        'shell',
+        formatter_class=ArgumentDefaultsHelpFormatter,
+        help='''Enter a Python3 shell with access to the Server objects.
+        This is useful for development and debugging.'''
+    )
 
     __do_nothing(ping_parser)
     __do_nothing(kill_guest_parser)
     __do_nothing(teardown_network_parser)
+    __do_nothing(shell_parser)
 
     # return the parser
     return parser
