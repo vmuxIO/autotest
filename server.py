@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from subprocess import check_output, CalledProcessError, STDOUT
 from socket import getfqdn
-from logging import debug, error
+from logging import debug, warning, error
 from time import sleep
 from datetime import datetime
 from abc import ABC
@@ -91,7 +91,10 @@ class Server(ABC):
         __init__ : Initialize the object.
         """
         self.localhost = self.fqdn == 'localhost' or self.fqdn == getfqdn()
-        self.nixos = self.isfile('/etc/NIXOS')
+        try:
+            self.nixos = self.isfile('/etc/NIXOS')
+        except Exception:
+            warning(f'Could not run nixos detection on {self.fqdn}')
 
     def log_name(self: 'Server') -> str:
         """
