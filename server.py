@@ -589,7 +589,12 @@ class Server(ABC):
         Returns
         -------
         """
-        _ = self.exec(f'sudo dpdk-devbind.py -b {driver} {dev_addr}')
+        cmd = f'sudo dpdk-devbind.py -b {driver} {dev_addr}'
+
+        if self.nixos:
+            _ = self.exec(f'nix-shell -p dpdk --run "{cmd}"')
+        else:
+            _ = self.exec(cmd)
 
     def unbind_device(self: 'Server', dev_addr: str) -> None:
         """
@@ -603,7 +608,12 @@ class Server(ABC):
         Returns
         -------
         """
-        _ = self.exec(f'sudo dpdk-devbind.py -u {dev_addr}')
+        cmd = f'sudo dpdk-devbind.py -u {dev_addr}'
+
+        if self.nixos:
+            _ = self.exec(f'nix-shell -p dpdk --run "{cmd}"')
+        else:
+            _ = self.exec(cmd)
 
     def bind_nics_to_dpdk(self: 'Server') -> None:
         """
@@ -615,7 +625,12 @@ class Server(ABC):
         Returns
         -------
         """
-        _ = self.exec(f'cd {self.moongen_dir}; sudo ./bind-interfaces.sh')
+        cmd = f'cd {self.moongen_dir}; sudo ./bind-interfaces.sh'
+
+        if self.nixos:
+            _ = self.exec(f'nix-shell -p dpdk --run "{cmd}"')
+        else:
+            _ = self.exec(cmd)
 
     def bind_test_iface(self: 'Server') -> None:
         """
@@ -627,6 +642,10 @@ class Server(ABC):
         Returns
         -------
         """
+        # detect test interface if not known
+        if not (self.test_iface_addr and self.test_iface_driv):
+            self.detect_test_iface()
+
         # check if test interface is already bound
         if self.is_test_iface_bound():
             debug(f"{self.fqdn}'s test interface already bound to DPDK.")
@@ -634,8 +653,8 @@ class Server(ABC):
                 self.detect_test_iface_id()
             return
 
-        # bind available interfaces to DPDK
-        self.bind_nics_to_dpdk()
+        # bind test interface to DPDK
+        self.bind_device(self.test_iface_addr, 'igb_uio')
 
         # get the test interface id
         self.detect_test_iface_id()
@@ -662,7 +681,13 @@ class Server(ABC):
         Returns
         -------
         """
-        output = self.exec("dpdk-devbind.py -s | grep 'drv=igb_uio'")
+        cmd = "dpdk-devbind.py -s | grep 'drv=igb_uio'"
+        output: str
+        if self.nixos:
+            output = self.exec(f'nix-shell -p dpdk --run "{cmd}"')
+        else:
+            output = self.exec(cmd)
+
         debug(f"Detecting test interface DPDK id on {self.fqdn}")
 
         for num, line in enumerate(output.splitlines()):
