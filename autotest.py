@@ -392,11 +392,31 @@ def setup_parser() -> ArgumentParser:
         help='''Enter a Python3 shell with access to the Server objects.
         This is useful for development and debugging.'''
     )
+    shell_parser.add_argument('-H',
+                              '--exclude-host',
+                              action='store_false',
+                              default=True,
+                              dest='host',
+                              help='''Do not create the Host object.''',
+                              )
+    shell_parser.add_argument('-G',
+                              '--exclude-guest',
+                              action='store_false',
+                              default=True,
+                              dest='guest',
+                              help='''Do not create the Guest object.''',
+                              )
+    shell_parser.add_argument('-L',
+                              '--exclude-loadgen',
+                              action='store_false',
+                              default=True,
+                              dest='loadgen',
+                              help='''Do not create the LoadGen object.''',
+                              )
 
     __do_nothing(ping_parser)
     __do_nothing(kill_guest_parser)
     __do_nothing(teardown_network_parser)
-    __do_nothing(shell_parser)
 
     # return the parser
     return parser
