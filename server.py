@@ -649,8 +649,8 @@ class Server(ABC):
                 self.detect_test_iface_id()
             return
 
-        # bind available interfaces to DPDK
-        self.bind_nics_to_dpdk()
+        # bind test interface to DPDK
+        self.bind_device(self.test_iface_addr, 'igb_uio')
 
         # get the test interface id
         self.detect_test_iface_id()
