@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from subprocess import check_output, CalledProcessError, STDOUT
 from socket import getfqdn
-from logging import debug, error
+from logging import debug, warning, error
 from time import sleep
 from datetime import datetime
 from abc import ABC
@@ -21,6 +21,8 @@ class Server(ABC):
         The fully qualified domain name of the server.
     localhost : bool
         True if the server is localhost.
+    nixos : bool
+        True if the server is running NixOS.
     test_iface : str
         The name of the interface to test.
     test_iface_addr : str
@@ -70,6 +72,7 @@ class Server(ABC):
     moongen_dir: str
     xdp_reflector_dir: str
     localhost: bool = False
+    nixos: bool = False
 
     def __post_init__(self: 'Server') -> None:
         """
@@ -88,6 +91,10 @@ class Server(ABC):
         __init__ : Initialize the object.
         """
         self.localhost = self.fqdn == 'localhost' or self.fqdn == getfqdn()
+        try:
+            self.nixos = self.isfile('/etc/NIXOS')
+        except Exception:
+            warning(f'Could not run nixos detection on {self.fqdn}')
 
     def log_name(self: 'Server') -> str:
         """
@@ -222,6 +229,23 @@ class Server(ABC):
             The user name.
         """
         return self.exec('whoami').strip()
+
+    def isfile(self: 'Server', path: str) -> bool:
+        """
+        Check if a file exists.
+
+        Parameters
+        ----------
+        path : str
+            The path to the file.
+
+        Returns
+        -------
+        bool
+            True if the file exists.
+        """
+        return self.exec(f'test -f {path} && echo true || echo false'
+                         ).strip() == 'true'
 
     def tmux_new(self: 'Server', session_name: str, command: str) -> None:
         """
