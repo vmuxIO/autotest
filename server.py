@@ -21,6 +21,8 @@ class Server(ABC):
         The fully qualified domain name of the server.
     localhost : bool
         True if the server is localhost.
+    nixos : bool
+        True if the server is running NixOS.
     test_iface : str
         The name of the interface to test.
     test_iface_addr : str
@@ -70,6 +72,7 @@ class Server(ABC):
     moongen_dir: str
     xdp_reflector_dir: str
     localhost: bool = False
+    nixos: bool = False
 
     def __post_init__(self: 'Server') -> None:
         """
