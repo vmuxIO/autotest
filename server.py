@@ -677,7 +677,13 @@ class Server(ABC):
         Returns
         -------
         """
-        output = self.exec("dpdk-devbind.py -s | grep 'drv=igb_uio'")
+        cmd = "dpdk-devbind.py -s | grep 'drv=igb_uio'"
+        output: str
+        if self.nixos:
+            output = self.exec(f'nix-shell -p dpdk --run "{cmd}"')
+        else:
+            output = self.exec(cmd)
+
         debug(f"Detecting test interface DPDK id on {self.fqdn}")
 
         for num, line in enumerate(output.splitlines()):
