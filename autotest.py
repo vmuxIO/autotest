@@ -13,6 +13,8 @@ from sys import argv, stderr, modules
 from time import sleep
 from os import (access, R_OK, W_OK)
 from os.path import isdir, isfile, join as path_join
+import readline
+from code import InteractiveConsole
 
 
 # project imports
@@ -384,10 +386,17 @@ def setup_parser() -> ArgumentParser:
                                       deprecated code.''',
                                  )
     # TODO maybe we want to alter test parameters directly via the arguments
+    shell_parser = subparsers.add_parser(
+        'shell',
+        formatter_class=ArgumentDefaultsHelpFormatter,
+        help='''Enter a Python3 shell with access to the Server objects.
+        This is useful for development and debugging.'''
+    )
 
     __do_nothing(ping_parser)
     __do_nothing(kill_guest_parser)
     __do_nothing(teardown_network_parser)
+    __do_nothing(shell_parser)
 
     # return the parser
     return parser
@@ -1335,6 +1344,40 @@ def test_load_lat_cli(args: Namespace, conf: ConfigParser) -> None:
         args,
         conf
     )
+
+
+def shell(args: Namespace, conf: ConfigParser) -> None:
+    """
+    Create the Server objects and drop the user into an interactive Python3
+    shell with access to them.
+
+    This a command function and is therefore called by execute_command().
+
+    Parameters
+    ----------
+    args : Namespace
+        The argparse namespace containing the parsed arguments.
+    conf : ConfigParser
+        The config parser.
+
+    Returns
+    -------
+    """
+    # this is just the linting issue of readline not being used
+    # it is used by the interactive shell
+    __do_nothing(readline)
+
+    # create servers
+    host: Host
+    guest: Guest
+    loadgen: LoadGen
+    host, guest, loadgen = create_servers(conf).values()
+
+    # start interactive shell with globals and locals
+    variables = globals().copy()
+    variables.update(locals())
+    shell = InteractiveConsole(variables)
+    shell.interact()
 
 
 def execute_command(args: Namespace, conf: ConfigParser) -> None:
