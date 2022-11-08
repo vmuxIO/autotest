@@ -608,7 +608,12 @@ class Server(ABC):
         Returns
         -------
         """
-        _ = self.exec(f'sudo dpdk-devbind.py -u {dev_addr}')
+        cmd = f'sudo dpdk-devbind.py -u {dev_addr}'
+
+        if self.nixos:
+            _ = self.exec(f'nix-shell -p dpdk --run "{cmd}"')
+        else:
+            _ = self.exec(cmd)
 
     def bind_nics_to_dpdk(self: 'Server') -> None:
         """
