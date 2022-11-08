@@ -642,6 +642,10 @@ class Server(ABC):
         Returns
         -------
         """
+        # detect test interface if not known
+        if not (self.test_iface_addr and self.test_iface_driv):
+            self.detect_test_iface()
+
         # check if test interface is already bound
         if self.is_test_iface_bound():
             debug(f"{self.fqdn}'s test interface already bound to DPDK.")
