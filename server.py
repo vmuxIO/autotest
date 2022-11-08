@@ -589,7 +589,12 @@ class Server(ABC):
         Returns
         -------
         """
-        _ = self.exec(f'sudo dpdk-devbind.py -b {driver} {dev_addr}')
+        cmd = f'sudo dpdk-devbind.py -b {driver} {dev_addr}'
+
+        if self.nixos:
+            _ = self.exec(f'nix-shell -p dpdk --run "{cmd}"')
+        else:
+            _ = self.exec(cmd)
 
     def unbind_device(self: 'Server', dev_addr: str) -> None:
         """
