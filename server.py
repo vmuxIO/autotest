@@ -223,6 +223,23 @@ class Server(ABC):
         """
         return self.exec('whoami').strip()
 
+    def isfile(self: 'Server', path: str) -> bool:
+        """
+        Check if a file exists.
+
+        Parameters
+        ----------
+        path : str
+            The path to the file.
+
+        Returns
+        -------
+        bool
+            True if the file exists.
+        """
+        return self.exec(f'test -f {path} && echo true || echo false'
+                         ).strip() == 'true'
+
     def tmux_new(self: 'Server', session_name: str, command: str) -> None:
         """
         Start a tmux session on the server.
