@@ -1388,10 +1388,17 @@ def shell(args: Namespace, conf: ConfigParser) -> None:
     __do_nothing(readline)
 
     # create servers
-    host: Host
-    guest: Guest
-    loadgen: LoadGen
-    host, guest, loadgen = create_servers(conf).values()
+    host: Host = None
+    guest: Guest = None
+    loadgen: LoadGen = None
+    servers = create_servers(conf, host=args.host, guest=args.guest,
+                             loadgen=args.loadgen)
+    if 'host' in servers:
+        host = servers['host']
+    if 'guest' in servers:
+        guest = servers['guest']
+    if 'loadgen' in servers:
+        loadgen = servers['loadgen']
 
     # start interactive shell with globals and locals
     variables = globals().copy()
