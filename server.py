@@ -625,7 +625,7 @@ class Server(ABC):
         Returns
         -------
         """
-        cmd = f'cd {self.moongen_dir}; sudo ./bind-interfaces.sh'
+        cmd = f'cd {self.moongen_dir}/bin/libmoon; sudo ./bind-interfaces.sh'
 
         if self.nixos:
             _ = self.exec(f'nix-shell -p dpdk --run "{cmd}"')
