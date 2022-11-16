@@ -766,7 +766,8 @@ class Server(ABC):
         Returns
         -------
         """
-        self.exec(f"cd {self.moongen_dir}; sudo ./setup-hugetlbfs.sh")
+        self.exec(
+            f"cd {self.moongen_dir}/bin/libmoon; sudo ./setup-hugetlbfs.sh")
 
     def get_nic_pci_address(self: 'Server', iface: str) -> str:
         """
