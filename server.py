@@ -681,7 +681,7 @@ class Server(ABC):
         Returns
         -------
         """
-        cmd = "dpdk-devbind.py -s | grep 'drv=igb_uio'"
+        cmd = "dpdk-devbind.py -s | grep 'drv=igb_uio' || true"
         output: str
         if self.nixos:
             output = self.exec(f'nix-shell -p dpdk --run "{cmd}"')
