@@ -829,7 +829,7 @@ class Server(ABC):
         tbbmalloc_path = ('./build/libmoon/tbb_cmake_build/' +
                           'tbb_cmake_build_subdir_release/libtbbmalloc.so.2')
         self.tmux_new('reflector', f'cd {self.moongen_dir}; ' +
-                      f'sudo LD_PRELOAD={tbbmalloc_path} build/MoonGen ' +
+                      f'sudo LD_PRELOAD={tbbmalloc_path} bin/MoonGen ' +
                       f'libmoon/examples/reflector.lua {self._test_iface_id}')
 
     def stop_moongen_reflector(self: 'Server'):
