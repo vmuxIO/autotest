@@ -989,8 +989,8 @@ class Host(Server):
         Host(fqdn='server.test.de')
         """
         super().__init__(fqdn, test_iface, test_iface_addr, test_iface_mac,
-                         test_iface_driv, moongen_dir, xdp_reflector_dir,
-                         localhost)
+                         test_iface_driv, moongen_dir, moonprogs_dir,
+                         xdp_reflector_dir, localhost)
         self.admin_bridge = admin_bridge
         self.admin_bridge_ip_net = admin_bridge_ip_net
         self.admin_tap = admin_tap
@@ -1332,7 +1332,8 @@ class Guest(Server):
         Guest(fqdn='server.test.de')
         """
         super().__init__(fqdn, test_iface, test_iface_addr, test_iface_mac,
-                         test_iface_driv, moongen_dir, xdp_reflector_dir)
+                         test_iface_driv, moongen_dir, moonprogs_dir,
+                         xdp_reflector_dir)
 
 
 class LoadGen(Server):
@@ -1403,8 +1404,8 @@ class LoadGen(Server):
         LoadGen(fqdn='server.test.de')
         """
         super().__init__(fqdn, test_iface, test_iface_addr, test_iface_mac,
-                         test_iface_driv, moongen_dir, xdp_reflector_dir,
-                         localhost)
+                         test_iface_driv, moongen_dir, moonprogs_dir,
+                         xdp_reflector_dir, localhost)
 
     def run_l2_load_latency(self: 'LoadGen',
                             mac: str,
