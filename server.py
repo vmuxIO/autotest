@@ -33,6 +33,8 @@ class Server(ABC):
         The MAC address of the interface to test.
     moongen_dir : str
         The directory of the MoonGen installation.
+    moonprogs_dir : str
+        The directory with the MoonGen Lua programs.
     xdp_reflector_dir : str
         The directory of the XDP reflector installation.
     localhost : bool
@@ -70,6 +72,7 @@ class Server(ABC):
     test_iface_mac: str
     test_iface_driv: str
     moongen_dir: str
+    moonprogs_dir: str
     xdp_reflector_dir: str
     localhost: bool = False
     nixos: bool = False
@@ -930,6 +933,7 @@ class Host(Server):
                  guest_root_disk_path: str,
                  guest_test_iface_mac: str,
                  moongen_dir: str,
+                 moonprogs_dir: str,
                  xdp_reflector_dir: str,
                  localhost: bool = False) -> None:
         """
@@ -965,6 +969,8 @@ class Host(Server):
             The MAC address of the guest test interface.
         moongen_dir : str
             The directory of the MoonGen installation.
+        moonprogs_dir : str
+            The directory with the MoonGen Lua programs.
         xdp_reflector_dir : str
             The directory of the xdp reflector installation.
         localhost : bool
@@ -1286,6 +1292,7 @@ class Guest(Server):
                  test_iface_mac: str,
                  test_iface_driv: str,
                  moongen_dir: str,
+                 moonprogs_dir: str,
                  xdp_reflector_dir: str,
                  ) -> None:
         """
@@ -1305,6 +1312,8 @@ class Guest(Server):
             The driver of the test interface.
         moongen_dir : str
             The directory of the MoonGen installation.
+        moonprogs_dir : str
+            The directory with the MoonGen Lua programs.
         xdp_reflector_dir : str
             The directory of the XDP Reflector installation.
         localhost : bool
@@ -1354,6 +1363,7 @@ class LoadGen(Server):
                  test_iface_mac: str,
                  test_iface_driv: str,
                  moongen_dir: str,
+                 moonprogs_dir: str,
                  xdp_reflector_dir: str = None,
                  localhost: bool = False) -> None:
         """
@@ -1373,6 +1383,8 @@ class LoadGen(Server):
             The driver of the test interface.
         moongen_dir : str
             The directory of the MoonGen installation.
+        moonprogs_dir : str
+            The directory with the MoonGen Lua programs.
         xdp_reflector_dir : str
             The directory of the XDP Reflector installation.
         localhost : bool
