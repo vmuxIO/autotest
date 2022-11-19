@@ -1442,11 +1442,9 @@ class LoadGen(Server):
         -------
         >>> LoadGen('server.test.de').start_l2_load_latency()
         """
-        tbbmalloc_path = ('./build/libmoon/tbb_cmake_build/' +
-                          'tbb_cmake_build_subdir_release/libtbbmalloc.so.2')
         self.tmux_new('loadlatency', f'cd {self.moongen_dir}; ' +
-                      f'sudo LD_PRELOAD={tbbmalloc_path} ' +
-                      'bin/MoonGen examples/l2-load-latency.lua ' +
+                      'sudo bin/MoonGen '
+                      r'{self.moonprogs_dir}/l2-load-latency.lua ' +
                       f'-r {rate} -f {histfile} -t {runtime} -s {size} ' +
                       f'{self._test_iface_id} {mac} ' +
                       f'2>&1 > {outfile}')
