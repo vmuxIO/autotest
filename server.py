@@ -930,6 +930,7 @@ class Host(Server):
     test_bridge: str
     test_tap: str
     test_macvtap: str
+    guest_admin_iface_mac: str
     guest_test_iface_mac: str
     guest_root_disk_path: str
 
@@ -946,6 +947,7 @@ class Host(Server):
                  test_tap: str,
                  test_macvtap: str,
                  guest_root_disk_path: str,
+                 guest_admin_iface_mac: str,
                  guest_test_iface_mac: str,
                  moongen_dir: str,
                  moonprogs_dir: str,
@@ -980,6 +982,8 @@ class Host(Server):
             The network interface identifier of the test macvtap interface.
         guest_root_disk_path : str
             The path to the root disk of the guest.
+        guest_admin_iface_mac : str
+            The MAC address of the guest admin interface.
         guest_test_iface_mac : str
             The MAC address of the guest test interface.
         moongen_dir : str
@@ -1015,6 +1019,7 @@ class Host(Server):
         self.test_tap = test_tap
         self.test_macvtap = test_macvtap
         self.guest_test_iface_mac = guest_test_iface_mac
+        self.guest_admin_iface_mac = guest_admin_iface_mac
         self.guest_root_disk_path = guest_root_disk_path
 
     def setup_admin_bridge(self: 'Host'):
@@ -1190,11 +1195,10 @@ class Host(Server):
         dev_type = 'pci' if machine_type == 'pc' else 'device'
         test_net_config = (
             f" -netdev tap,vhost={'on' if vhost else 'off'}," +
-            'id=admin1,ifname=tap1,script=no,' +
+            f'id=admin1,ifname={self.test_tap},script=no,' +
             'downscript=no,queues=4' +
             f' -device virtio-net-{dev_type},id=testif,' +
-            # TODO
-            'netdev=admin1,mac=52:54:00:fa:00:60,mq=on' +
+            f'netdev=admin1,mac={self.guest_test_iface_mac},mq=on' +
             (',use-ioregionfd=true' if ioregionfd else '')
             + f',rx_queue_size={rx_queue_size},tx_queue_size={tx_queue_size}'
             # + f',rx_queue_size={rx_queue_size},tx_queue_size={tx_queue_size}'
@@ -1204,10 +1208,10 @@ class Host(Server):
         ) if net_type == 'brtap' else (
             f" -netdev tap,vhost={'on' if vhost else 'off'}," +
             'id=admin1,fd=3 3<>/dev/tap$(cat ' +
-            '/sys/class/net/macvtap1/ifindex) ' +
+            f'/sys/class/net/{self.test_macvtap}/ifindex) ' +
             f' -device virtio-net-{dev_type},id=testif,' +
             'netdev=admin1,mac=$(cat ' +
-            '/sys/class/net/macvtap1/address)' +
+            f'/sys/class/net/{self.test_macvtap}/address)' +
             (',use-ioregionfd=true' if ioregionfd else '')
             + f',rx_queue_size={rx_queue_size},tx_queue_size={tx_queue_size}'
             # + f',rx_queue_size={rx_queue_size},tx_queue_size={tx_queue_size}'
@@ -1229,18 +1233,18 @@ class Host(Server):
             ' -smp 4' +
             ' -m 4096' +
             ' -enable-kvm' +
-            f' -drive id=root,format=raw,file={disk_path},if=none,' +
-            'cache=none' +
+            f' -drive id=root,format=qcow2,file={disk_path},'
+            'if=none,cache=none' +
             f' -device virtio-blk-{dev_type},id=rootdisk,drive=root' +
             (',use-ioregionfd=true' if ioregionfd else '')
             + f',queue-size={rx_queue_size}'
-            ' -cdrom /home/networkadmin/images/guest_init.iso' +
+            # ' -cdrom /home/networkadmin/images/guest_init.iso' +
             ' -serial stdio' +
             ' -monitor tcp:127.0.0.1:2345,server,nowait' +
-            ' -netdev tap,vhost=on,id=admin0,ifname=tap0,script=no,' +
-            'downscript=no' +
+            f' -netdev tap,vhost=on,id=admin0,ifname={self.admin_tap},' +
+            'script=no,downscript=no' +
             f' -device virtio-net-{dev_type},id=admif,netdev=admin0,' +
-            'mac=52:54:00:fa:00:5f' +
+            f'mac={self.guest_admin_iface_mac}' +
             test_net_config
             # +
             # ' -drive id=test1,format=raw,file=/dev/ssd/test1,if=none,' +

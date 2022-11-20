@@ -245,7 +245,7 @@ def setup_parser() -> ArgumentParser:
     run_guest_parser.add_argument('-q',
                                   '--qemu-path',
                                   type=str,
-                                  default='/home/networkadmin/qemu_build',
+                                  default='/home/gierens/qemu-build',
                                   help='QEMU build path',
                                   )
     kill_guest_parser = subparsers.add_parser(
@@ -615,7 +615,8 @@ def create_servers(conf: ConfigParser,
             conf['host']['test_tap'],
             conf['host']['test_macvtap'],
             conf['host']['root_disk_file'],
-            conf['host']['test_iface_mac'],
+            conf['guest']['admin_iface_mac'],
+            conf['guest']['test_iface_mac'],
             conf['host']['moongen_dir'],
             conf['host']['moonprogs_dir'],
             conf['host']['xdp_reflector_dir']

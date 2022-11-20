@@ -39,6 +39,7 @@
     "nics",
     "nixos",
     "pnic",
+    "qcow2",
     "qemus",
     "qtree",
     "rtree",
