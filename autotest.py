@@ -245,7 +245,7 @@ def setup_parser() -> ArgumentParser:
     run_guest_parser.add_argument('-q',
                                   '--qemu-path',
                                   type=str,
-                                  default='/home/networkadmin/qemu_build',
+                                  default='/home/gierens/qemu-build',
                                   help='QEMU build path',
                                   )
     kill_guest_parser = subparsers.add_parser(
