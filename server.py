@@ -1234,8 +1234,8 @@ class Host(Server):
             ' -smp 4' +
             ' -m 4096' +
             ' -enable-kvm' +
-            f' -drive id=root,format=raw,file={disk_path},if=none,' +
-            'cache=none' +
+            f' -drive id=root,format=qcow2,file={disk_path},'
+            'if=none,cache=none' +
             f' -device virtio-blk-{dev_type},id=rootdisk,drive=root' +
             (',use-ioregionfd=true' if ioregionfd else '')
             + f',queue-size={rx_queue_size}'
