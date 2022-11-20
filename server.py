@@ -930,6 +930,7 @@ class Host(Server):
     test_bridge: str
     test_tap: str
     test_macvtap: str
+    guest_admin_iface_mac: str
     guest_test_iface_mac: str
     guest_root_disk_path: str
 
@@ -946,6 +947,7 @@ class Host(Server):
                  test_tap: str,
                  test_macvtap: str,
                  guest_root_disk_path: str,
+                 guest_admin_iface_mac: str,
                  guest_test_iface_mac: str,
                  moongen_dir: str,
                  moonprogs_dir: str,
@@ -980,6 +982,8 @@ class Host(Server):
             The network interface identifier of the test macvtap interface.
         guest_root_disk_path : str
             The path to the root disk of the guest.
+        guest_admin_iface_mac : str
+            The MAC address of the guest admin interface.
         guest_test_iface_mac : str
             The MAC address of the guest test interface.
         moongen_dir : str
@@ -1015,6 +1019,7 @@ class Host(Server):
         self.test_tap = test_tap
         self.test_macvtap = test_macvtap
         self.guest_test_iface_mac = guest_test_iface_mac
+        self.guest_admin_iface_mac = guest_admin_iface_mac
         self.guest_root_disk_path = guest_root_disk_path
 
     def setup_admin_bridge(self: 'Host'):
