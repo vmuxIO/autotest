@@ -33,6 +33,8 @@ class Server(ABC):
         The MAC address of the interface to test.
     moongen_dir : str
         The directory of the MoonGen installation.
+    moonprogs_dir : str
+        The directory with the MoonGen Lua programs.
     xdp_reflector_dir : str
         The directory of the XDP reflector installation.
     localhost : bool
@@ -70,6 +72,7 @@ class Server(ABC):
     test_iface_mac: str
     test_iface_driv: str
     moongen_dir: str
+    moonprogs_dir: str
     xdp_reflector_dir: str
     localhost: bool = False
     nixos: bool = False
@@ -625,7 +628,7 @@ class Server(ABC):
         Returns
         -------
         """
-        cmd = f'cd {self.moongen_dir}; sudo ./bind-interfaces.sh'
+        cmd = f'cd {self.moongen_dir}/bin/libmoon; sudo ./bind-interfaces.sh'
 
         if self.nixos:
             _ = self.exec(f'nix-shell -p dpdk --run "{cmd}"')
@@ -681,7 +684,7 @@ class Server(ABC):
         Returns
         -------
         """
-        cmd = "dpdk-devbind.py -s | grep 'drv=igb_uio'"
+        cmd = "dpdk-devbind.py -s | grep 'drv=igb_uio' || true"
         output: str
         if self.nixos:
             output = self.exec(f'nix-shell -p dpdk --run "{cmd}"')
@@ -766,7 +769,8 @@ class Server(ABC):
         Returns
         -------
         """
-        self.exec(f"cd {self.moongen_dir}; sudo ./setup-hugetlbfs.sh")
+        self.exec(
+            f"cd {self.moongen_dir}/bin/libmoon; sudo ./setup-hugetlbfs.sh")
 
     def get_nic_pci_address(self: 'Server', iface: str) -> str:
         """
@@ -825,11 +829,9 @@ class Server(ABC):
         Returns
         -------
         """
-        tbbmalloc_path = ('./build/libmoon/tbb_cmake_build/' +
-                          'tbb_cmake_build_subdir_release/libtbbmalloc.so.2')
-        self.tmux_new('reflector', f'cd {self.moongen_dir}; ' +
-                      f'sudo LD_PRELOAD={tbbmalloc_path} build/MoonGen ' +
-                      f'libmoon/examples/reflector.lua {self._test_iface_id}')
+        self.tmux_new('reflector', f'cd {self.moongen_dir}; sudo bin/MoonGen' +
+                      f' {self.moonprogs_dir}/reflector.lua' +
+                      f' {self._test_iface_id}')
 
     def stop_moongen_reflector(self: 'Server'):
         """
@@ -929,6 +931,7 @@ class Host(Server):
                  guest_root_disk_path: str,
                  guest_test_iface_mac: str,
                  moongen_dir: str,
+                 moonprogs_dir: str,
                  xdp_reflector_dir: str,
                  localhost: bool = False) -> None:
         """
@@ -964,6 +967,8 @@ class Host(Server):
             The MAC address of the guest test interface.
         moongen_dir : str
             The directory of the MoonGen installation.
+        moonprogs_dir : str
+            The directory with the MoonGen Lua programs.
         xdp_reflector_dir : str
             The directory of the xdp reflector installation.
         localhost : bool
@@ -984,8 +989,8 @@ class Host(Server):
         Host(fqdn='server.test.de')
         """
         super().__init__(fqdn, test_iface, test_iface_addr, test_iface_mac,
-                         test_iface_driv, moongen_dir, xdp_reflector_dir,
-                         localhost)
+                         test_iface_driv, moongen_dir, moonprogs_dir,
+                         xdp_reflector_dir, localhost)
         self.admin_bridge = admin_bridge
         self.admin_bridge_ip_net = admin_bridge_ip_net
         self.admin_tap = admin_tap
@@ -1171,6 +1176,7 @@ class Host(Server):
             'id=admin1,ifname=tap1,script=no,' +
             'downscript=no,queues=4' +
             f' -device virtio-net-{dev_type},id=testif,' +
+            # TODO
             'netdev=admin1,mac=52:54:00:fa:00:60,mq=on' +
             (',use-ioregionfd=true' if ioregionfd else '')
             + f',rx_queue_size={rx_queue_size},tx_queue_size={tx_queue_size}'
@@ -1285,6 +1291,7 @@ class Guest(Server):
                  test_iface_mac: str,
                  test_iface_driv: str,
                  moongen_dir: str,
+                 moonprogs_dir: str,
                  xdp_reflector_dir: str,
                  ) -> None:
         """
@@ -1304,6 +1311,8 @@ class Guest(Server):
             The driver of the test interface.
         moongen_dir : str
             The directory of the MoonGen installation.
+        moonprogs_dir : str
+            The directory with the MoonGen Lua programs.
         xdp_reflector_dir : str
             The directory of the XDP Reflector installation.
         localhost : bool
@@ -1324,7 +1333,8 @@ class Guest(Server):
         Guest(fqdn='server.test.de')
         """
         super().__init__(fqdn, test_iface, test_iface_addr, test_iface_mac,
-                         test_iface_driv, moongen_dir, xdp_reflector_dir)
+                         test_iface_driv, moongen_dir, moonprogs_dir,
+                         xdp_reflector_dir)
 
 
 class LoadGen(Server):
@@ -1353,6 +1363,7 @@ class LoadGen(Server):
                  test_iface_mac: str,
                  test_iface_driv: str,
                  moongen_dir: str,
+                 moonprogs_dir: str,
                  xdp_reflector_dir: str = None,
                  localhost: bool = False) -> None:
         """
@@ -1372,6 +1383,8 @@ class LoadGen(Server):
             The driver of the test interface.
         moongen_dir : str
             The directory of the MoonGen installation.
+        moonprogs_dir : str
+            The directory with the MoonGen Lua programs.
         xdp_reflector_dir : str
             The directory of the XDP Reflector installation.
         localhost : bool
@@ -1392,8 +1405,8 @@ class LoadGen(Server):
         LoadGen(fqdn='server.test.de')
         """
         super().__init__(fqdn, test_iface, test_iface_addr, test_iface_mac,
-                         test_iface_driv, moongen_dir, xdp_reflector_dir,
-                         localhost)
+                         test_iface_driv, moongen_dir, moonprogs_dir,
+                         xdp_reflector_dir, localhost)
 
     def run_l2_load_latency(self: 'LoadGen',
                             mac: str,
@@ -1431,11 +1444,9 @@ class LoadGen(Server):
         -------
         >>> LoadGen('server.test.de').start_l2_load_latency()
         """
-        tbbmalloc_path = ('./build/libmoon/tbb_cmake_build/' +
-                          'tbb_cmake_build_subdir_release/libtbbmalloc.so.2')
         self.tmux_new('loadlatency', f'cd {self.moongen_dir}; ' +
-                      f'sudo LD_PRELOAD={tbbmalloc_path} ' +
-                      'build/MoonGen examples/l2-load-latency.lua ' +
+                      'sudo bin/MoonGen '
+                      f'{self.moonprogs_dir}/l2-load-latency.lua ' +
                       f'-r {rate} -f {histfile} -t {runtime} -s {size} ' +
                       f'{self._test_iface_id} {mac} ' +
                       f'2>&1 > {outfile}')

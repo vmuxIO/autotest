@@ -608,9 +608,10 @@ def create_servers(conf: ConfigParser,
             conf['host']['test_bridge'],
             conf['host']['test_tap'],
             conf['host']['test_macvtap'],
-            conf['guest']['root_disk_file'],
-            conf['guest']['test_iface_mac'],
+            conf['host']['root_disk_file'],
+            conf['host']['test_iface_mac'],
             conf['host']['moongen_dir'],
+            conf['host']['moonprogs_dir'],
             conf['host']['xdp_reflector_dir']
         )
     if guest:
@@ -621,6 +622,7 @@ def create_servers(conf: ConfigParser,
             conf['guest']['test_iface_mac'],
             conf['guest']['test_iface_driv'],
             conf['guest']['moongen_dir'],
+            conf['guest']['moonprogs_dir'],
             conf['guest']['xdp_reflector_dir']
         )
     if loadgen:
@@ -630,7 +632,8 @@ def create_servers(conf: ConfigParser,
             conf['loadgen']['test_iface_addr'],
             conf['loadgen']['test_iface_mac'],
             conf['loadgen']['test_iface_driv'],
-            conf['loadgen']['moongen_dir']
+            conf['loadgen']['moongen_dir'],
+            conf['loadgen']['moonprogs_dir']
         )
     return servers
 
