@@ -830,7 +830,7 @@ class Server(ABC):
         -------
         """
         self.tmux_new('reflector', f'cd {self.moongen_dir}; sudo bin/MoonGen' +
-                      f' libmoon/examples/{self.moonprogs_dir}/reflector.lua' +
+                      f' {self.moonprogs_dir}/reflector.lua' +
                       f' {self._test_iface_id}')
 
     def stop_moongen_reflector(self: 'Server'):
