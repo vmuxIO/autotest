@@ -1195,7 +1195,7 @@ class Host(Server):
         dev_type = 'pci' if machine_type == 'pc' else 'device'
         test_net_config = (
             f" -netdev tap,vhost={'on' if vhost else 'off'}," +
-            'id=admin1,ifname=tap1,script=no,' +
+            f'id=admin1,ifname={self.test_tap},script=no,' +
             'downscript=no,queues=4' +
             f' -device virtio-net-{dev_type},id=testif,' +
             # TODO
@@ -1209,10 +1209,10 @@ class Host(Server):
         ) if net_type == 'brtap' else (
             f" -netdev tap,vhost={'on' if vhost else 'off'}," +
             'id=admin1,fd=3 3<>/dev/tap$(cat ' +
-            '/sys/class/net/macvtap1/ifindex) ' +
+            f'/sys/class/net/{self.test_macvtap}/ifindex) ' +
             f' -device virtio-net-{dev_type},id=testif,' +
             'netdev=admin1,mac=$(cat ' +
-            '/sys/class/net/macvtap1/address)' +
+            f'/sys/class/net/{self.test_macvtap}/address)' +
             (',use-ioregionfd=true' if ioregionfd else '')
             + f',rx_queue_size={rx_queue_size},tx_queue_size={tx_queue_size}'
             # + f',rx_queue_size={rx_queue_size},tx_queue_size={tx_queue_size}'
