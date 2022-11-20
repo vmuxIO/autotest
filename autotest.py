@@ -1410,6 +1410,31 @@ def shell(args: Namespace, conf: ConfigParser) -> None:
     shell.interact()
 
 
+def upload_moonprogs(args: Namespace, conf: ConfigParser) -> None:
+    """
+    Upload the MoonGen programs to the load generator.
+
+    This a command function and is therefore called by execute_command().
+
+    Parameters
+    ----------
+    args : Namespace
+        The argparse namespace containing the parsed arguments.
+    conf : ConfigParser
+        The config parser.
+
+    Returns
+    -------
+    """
+    for server in create_servers(conf).values():
+        try:
+            server.upload_moonprogs(conf['local']['moonprogs_dir'])
+            info(f'Uploaded MoonGen programs to {server.fqdn}')
+        except Exception as e:
+            error(f'Failed to upload MoonGen programs to {server.fqdn}' +
+                  f'due to: {e}')
+
+
 def execute_command(args: Namespace, conf: ConfigParser) -> None:
     """
     Execute the function for the given command.
