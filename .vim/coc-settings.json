@@ -37,6 +37,7 @@
     "mtree",
     "netdev",
     "nics",
+    "nixos",
     "pnic",
     "qemus",
     "qtree",
