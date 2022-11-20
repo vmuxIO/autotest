@@ -413,6 +413,12 @@ def setup_parser() -> ArgumentParser:
                               dest='loadgen',
                               help='''Do not create the LoadGen object.''',
                               )
+    # TODO command to upload moonprogs
+    shell_parser = subparsers.add_parser(
+        'upload-moonprogs',
+        formatter_class=ArgumentDefaultsHelpFormatter,
+        help='''Upload the MoonGen programs to the servers.'''
+    )
 
     __do_nothing(ping_parser)
     __do_nothing(kill_guest_parser)
