@@ -5,6 +5,7 @@ from logging import debug, warning, error
 from time import sleep
 from datetime import datetime
 from abc import ABC
+from os import listdir
 from os.path import join as path_join
 
 
@@ -887,6 +888,22 @@ class Server(ABC):
         if not iface:
             iface = self.test_iface
         self.exec(f'sudo ip link set {iface} xdpgeneric off')
+
+    def upload_moonprogs(self: 'Server', source_dir: str):
+        """
+        Upload the MoonGen programs to the server.
+
+        Parameters
+        ----------
+        source_dir : str
+            The local directory containing the MoonGen programs.
+
+        Returns
+        -------
+        """
+        self.exec(f'mkdir -p {self.moonprogs_dir}')
+        for file in listdir(source_dir):
+            self.copy_to(path_join(source_dir, file), self.moonprogs_dir)
 
 
 class Host(Server):
