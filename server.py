@@ -1198,8 +1198,7 @@ class Host(Server):
             f'id=admin1,ifname={self.test_tap},script=no,' +
             'downscript=no,queues=4' +
             f' -device virtio-net-{dev_type},id=testif,' +
-            # TODO
-            'netdev=admin1,mac=52:54:00:fa:00:60,mq=on' +
+            f'netdev=admin1,mac={self.guest_test_iface_mac},mq=on' +
             (',use-ioregionfd=true' if ioregionfd else '')
             + f',rx_queue_size={rx_queue_size},tx_queue_size={tx_queue_size}'
             # + f',rx_queue_size={rx_queue_size},tx_queue_size={tx_queue_size}'
