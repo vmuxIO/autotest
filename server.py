@@ -1244,7 +1244,7 @@ class Host(Server):
             f' -netdev tap,vhost=on,id=admin0,ifname={self.admin_tap},' +
             'script=no,downscript=no' +
             f' -device virtio-net-{dev_type},id=admif,netdev=admin0,' +
-            'mac=52:54:00:fa:00:5f' +
+            f'mac={self.guest_admin_iface_mac}' +
             test_net_config
             # +
             # ' -drive id=test1,format=raw,file=/dev/ssd/test1,if=none,' +
