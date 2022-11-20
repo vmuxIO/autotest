@@ -1445,7 +1445,7 @@ class LoadGen(Server):
         """
         self.tmux_new('loadlatency', f'cd {self.moongen_dir}; ' +
                       'sudo bin/MoonGen '
-                      r'{self.moonprogs_dir}/l2-load-latency.lua ' +
+                      f'{self.moonprogs_dir}/l2-load-latency.lua ' +
                       f'-r {rate} -f {histfile} -t {runtime} -s {size} ' +
                       f'{self._test_iface_id} {mac} ' +
                       f'2>&1 > {outfile}')
