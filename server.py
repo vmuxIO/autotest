@@ -1241,8 +1241,8 @@ class Host(Server):
             # ' -cdrom /home/networkadmin/images/guest_init.iso' +
             ' -serial stdio' +
             ' -monitor tcp:127.0.0.1:2345,server,nowait' +
-            ' -netdev tap,vhost=on,id=admin0,ifname=tap0,script=no,' +
-            'downscript=no' +
+            f' -netdev tap,vhost=on,id=admin0,ifname={self.admin_tap},' +
+            'script=no,downscript=no' +
             f' -device virtio-net-{dev_type},id=admif,netdev=admin0,' +
             'mac=52:54:00:fa:00:5f' +
             test_net_config
