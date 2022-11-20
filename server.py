@@ -1239,7 +1239,7 @@ class Host(Server):
             f' -device virtio-blk-{dev_type},id=rootdisk,drive=root' +
             (',use-ioregionfd=true' if ioregionfd else '')
             + f',queue-size={rx_queue_size}'
-            ' -cdrom /home/networkadmin/images/guest_init.iso' +
+            # ' -cdrom /home/networkadmin/images/guest_init.iso' +
             ' -serial stdio' +
             ' -monitor tcp:127.0.0.1:2345,server,nowait' +
             ' -netdev tap,vhost=on,id=admin0,ifname=tap0,script=no,' +
