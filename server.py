@@ -234,6 +234,20 @@ class Server(ABC):
         """
         return self.exec('whoami').strip()
 
+    def gethome(self: 'Server') -> str:
+        """
+        Get the home directory.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        str
+            The home directory.
+        """
+        return self.exec('echo $HOME').strip()
+
     def isfile(self: 'Server', path: str) -> bool:
         """
         Check if a file exists.
