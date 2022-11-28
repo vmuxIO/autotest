@@ -1255,6 +1255,8 @@ class Host(Server):
             f',queue-size={rx_queue_size}' +
             # ' -cdrom /home/networkadmin/images/guest_init.iso' +
             f' -virtfs local,path={home},security_model=none,mount_tag=home' +
+            ' -virtfs local,path=/nix/store,security_model=none,' +
+            'mount_tag=nixstore' +
             ' -serial stdio' +
             ' -monitor tcp:127.0.0.1:2345,server,nowait' +
             f' -netdev tap,vhost=on,id=admin0,ifname={self.admin_tap},' +
