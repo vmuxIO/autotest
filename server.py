@@ -234,6 +234,20 @@ class Server(ABC):
         """
         return self.exec('whoami').strip()
 
+    def gethome(self: 'Server') -> str:
+        """
+        Get the home directory.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        str
+            The home directory.
+        """
+        return self.exec('echo $HOME').strip()
+
     def isfile(self: 'Server', path: str) -> bool:
         """
         Check if a file exists.
@@ -1224,6 +1238,7 @@ class Host(Server):
         disk_path = self.guest_root_disk_path
         if root_disk:
             disk_path = root_disk
+        home = self.gethome()
         self.tmux_new(
             'qemu',
             ('gdbserver 0.0.0.0:1234 ' if debug_qemu else '') +
@@ -1236,9 +1251,10 @@ class Host(Server):
             f' -drive id=root,format=qcow2,file={disk_path},'
             'if=none,cache=none' +
             f' -device virtio-blk-{dev_type},id=rootdisk,drive=root' +
-            (',use-ioregionfd=true' if ioregionfd else '')
-            + f',queue-size={rx_queue_size}'
+            (',use-ioregionfd=true' if ioregionfd else '') +
+            f',queue-size={rx_queue_size}' +
             # ' -cdrom /home/networkadmin/images/guest_init.iso' +
+            f' -virtfs local,path={home},security_model=none,mount_tag=home' +
             ' -serial stdio' +
             ' -monitor tcp:127.0.0.1:2345,server,nowait' +
             f' -netdev tap,vhost=on,id=admin0,ifname={self.admin_tap},' +

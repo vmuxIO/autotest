@@ -49,6 +49,7 @@
     "tunctl",
     "vhost",
     "vhosts",
+    "virtfs",
     "virtio",
     "vmux",
     "vtree",
