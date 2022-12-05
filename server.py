@@ -1375,6 +1375,30 @@ class Guest(Server):
                          test_iface_driv, moongen_dir, moonprogs_dir,
                          xdp_reflector_dir)
 
+    def __post_init__(self: 'Guest') -> None:
+        """
+        Post initialization.
+
+        This method is called after the object is created.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
+        See Also
+        --------
+        __init__ : Initialize the object.
+        """
+        super().__post_init__()
+
+        # Due to the write lock issue with the /nix/store we cannot do
+        # stuff like opening nix shells. So we make sure the guest can
+        # run commands without that, and therefore unset the nixos
+        # attribute.
+        self.nixos = False
+
 
 class LoadGen(Server):
     """
