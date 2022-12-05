@@ -810,7 +810,7 @@ class Server(ABC):
         """
         return self.exec(
             f"basename $(realpath /sys/class/net/{iface}/device " +
-            "| sed \"s/\\/virtio2//g\")"
+            "| sed \"s/\\/virtio[0-9]//g\")"
         ).replace('\n', '')
 
     def get_nic_mac_address(self: 'Server', iface: str) -> str:
