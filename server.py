@@ -844,8 +844,8 @@ class Server(ABC):
         Returns
         -------
         """
-        self.tmux_new('reflector', f'cd {self.moongen_dir}; sudo bin/MoonGen' +
-                      f' {self.moonprogs_dir}/reflector.lua' +
+        self.tmux_new('reflector', f'cd {self.moongen_dir}; sudo bin/MoonGen '
+                      + path_join(self.moonprogs_dir, 'reflector.lua') +
                       f' {self._test_iface_id}')
 
     def stop_moongen_reflector(self: 'Server'):
