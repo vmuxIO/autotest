@@ -1256,9 +1256,11 @@ class Host(Server):
             (',use-ioregionfd=true' if ioregionfd else '') +
             f',queue-size={rx_queue_size}' +
             # ' -cdrom /home/networkadmin/images/guest_init.iso' +
-            f' -virtfs local,path={home},security_model=none,mount_tag=home' +
-            ' -virtfs local,path=/nix/store,security_model=none,' +
-            'mount_tag=nixstore' +
+            f' -fsdev local,path={home},security_model=none,id=homefs' +
+            f' -device virtio-9p-{dev_type},mount_tag=home,fsdev=homefs' +
+            ' -fsdev local,path=/nix/store,security_model=none,id=nixstorefs' +
+            f' -device virtio-9p-{dev_type},mount_tag=nixstore,' +
+            'fsdev=nixstorefs' +
             ' -serial stdio' +
             ' -monitor tcp:127.0.0.1:2345,server,nowait' +
             f' -netdev tap,vhost=on,id=admin0,ifname={self.admin_tap},' +
