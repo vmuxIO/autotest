@@ -162,7 +162,7 @@ class LoadLatencyTest(object):
             try:
                 loadgen.wait_for_success(f'ls {remote_histogram_file}')
             except TimeoutError:
-                error('Waiting for histogram file to appear timed')
+                error('Waiting for histogram file to appear timed out')
                 continue
             sleep(1)
             # TODO here a tmux_exists function would come in handy
