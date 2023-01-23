@@ -477,13 +477,16 @@ class LoadLatencyTestGenerator(object):
                                       f"{vhost} {ioregionfd}")
                                 self.run_guest(host, machine, interface,
                                                qemu_path, vhost, ioregionfd)
+                                # TODO maybe check if tmux session running
 
                                 debug("Waiting for guest connectivity")
                                 try:
-                                    guest.wait_for_connection()
+                                    guest.wait_for_connection(timeout=120)
                                 except TimeoutError:
                                     error('Waiting for connection to guest ' +
                                           'timed out.')
+                                    # TODO kill guest, teardown network,
+                                    # recreate and retry
                                     return
 
                                 debug("Detecting guest test interface")
